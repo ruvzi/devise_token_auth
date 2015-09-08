@@ -22,13 +22,14 @@ module DeviseTokenAuth
           q_value.downcase!
         end
 
-        q = "#{field.to_s} = ? AND provider='email'"
+        q = "authentications.uid = ? AND authentications.provider='email'"
 
         if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
           q = "BINARY " + q
         end
 
-        @resource = resource_class.where(q, q_value).first
+        @resource = resource_class.joins(:authentications).where(q, q_value).first
+        @authentication = @resource.authentications.uid(q_value).first
       end
 
       if @resource and valid_params?(field, q_value) and @resource.valid_password?(resource_params[:password]) and (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
@@ -36,18 +37,18 @@ module DeviseTokenAuth
         @client_id = SecureRandom.urlsafe_base64(nil, false)
         @token     = SecureRandom.urlsafe_base64(nil, false)
 
-        @resource.tokens[@client_id] = {
+        @authentication.tokens[@client_id] = {
           token: BCrypt::Password.create(@token),
           expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
         }
-        @resource.save
+        @authentication.save
 
         sign_in(:user, @resource, store: false, bypass: false)
 
         yield if block_given?
 
         render json: {
-          data: @resource.token_validation_response
+          data: @authentication.token_validation_response
         }
 
       elsif @resource and not (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
@@ -66,12 +67,13 @@ module DeviseTokenAuth
     def destroy
       # remove auth instance variables so that after_filter does not run
       user = remove_instance_variable(:@resource) if @resource
+      authentication = remove_instance_variable(:@authentication) if @authentication
       client_id = remove_instance_variable(:@client_id) if @client_id
       remove_instance_variable(:@token) if @token
 
-      if user and client_id and user.tokens[client_id]
-        user.tokens.delete(client_id)
-        user.save!
+      if user && authentication && client_id && authentication.tokens[client_id]
+        authentication.tokens.delete(client_id)
+        authentication.save!
 
         yield if block_given?
 

@@ -14,20 +14,21 @@ module ActionDispatch::Routing
       omniauth_ctrl          = opts[:controllers][:omniauth_callbacks] || "devise_token_auth/omniauth_callbacks"
 
       # define devise controller mappings
-      controllers = {:sessions           => sessions_ctrl,
-                     :registrations      => registrations_ctrl,
-                     :passwords          => passwords_ctrl,
-                     :confirmations      => confirmations_ctrl}
+      controllers = {sessions:            sessions_ctrl,
+                     registrations:       registrations_ctrl,
+                     passwords:           passwords_ctrl,
+                     confirmations:       confirmations_ctrl
+      }
 
       # remove any unwanted devise modules
       opts[:skip].each{|item| controllers.delete(item)}
 
       devise_for resource.pluralize.underscore.gsub('/', '_').to_sym,
-        :class_name  => resource,
-        :module      => :devise,
-        :path        => "#{opts[:at]}",
-        :controllers => controllers,
-        :skip        => opts[:skip] + [:omniauth_callbacks]
+        class_name:   resource,
+        module:       :devise,
+        path:         "#{opts[:at]}",
+        controllers:  controllers,
+        skip:         opts[:skip] + [:omniauth_callbacks]
 
       unnest_namespace do
         # get full url path as if it were namespaced

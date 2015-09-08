@@ -7,7 +7,6 @@ module DeviseTokenAuth
 
     def create
       @resource            = resource_class.new(sign_up_params)
-      @resource.provider   = "email"
 
       # honor devise configuration for case_insensitive_keys
       if resource_class.case_insensitive_keys.include?(:email)
@@ -60,11 +59,12 @@ module DeviseTokenAuth
             @client_id = SecureRandom.urlsafe_base64(nil, false)
             @token     = SecureRandom.urlsafe_base64(nil, false)
 
-            @resource.tokens[@client_id] = {
+            @authentication.tokens[@client_id] = {
               token: BCrypt::Password.create(@token),
               expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
             }
 
+            @authentication.save!
             @resource.save!
 
             update_auth_header
@@ -121,7 +121,7 @@ module DeviseTokenAuth
 
         render json: {
           status: 'success',
-          message: I18n.t("devise_token_auth.registrations.account_with_uid_destroyed", uid: @resource.uid)
+          message: I18n.t("devise_token_auth.registrations.account_with_uid_destroyed", uid: @authentication.uid)
         }
       else
         render json: {

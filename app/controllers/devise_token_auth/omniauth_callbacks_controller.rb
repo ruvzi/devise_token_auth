@@ -25,7 +25,7 @@ module DeviseTokenAuth
     def omniauth_success
       get_resource_from_auth_hash
       create_token_info
-      set_token_on_resource
+      set_token_on_authentication
       create_auth_params
 
       if resource_class.devise_modules.include?(:confirmable)
@@ -36,6 +36,7 @@ module DeviseTokenAuth
       sign_in(:user, @resource, store: false, bypass: false)
 
       @resource.save!
+      @resource.omniauth_success_callback!(@authentication.reload) if @resource.respond_to?(:omniauth_success_callback!)
 
       yield if block_given?
 
@@ -58,7 +59,7 @@ module DeviseTokenAuth
     # after use.  In the failure case, finally, the omniauth params
     # are added as query params in our monkey patch to OmniAuth in engine.rb
     def omniauth_params
-      if !defined?(@_omniauth_params)
+      unless defined?(@_omniauth_params)
         if request.env['omniauth.params'] && request.env['omniauth.params'].any?
           @_omniauth_params = request.env['omniauth.params']
         elsif session['dta.omniauth.params'] && session['dta.omniauth.params'].any?
@@ -71,15 +72,11 @@ module DeviseTokenAuth
         end
       end
       @_omniauth_params
-      
     end
 
     # break out provider attribute assignment for easy method extension
     def assign_provider_attrs(user, auth_hash)
       user.assign_attributes({
-        nickname: auth_hash['info']['nickname'],
-        name:     auth_hash['info']['name'],
-        image:    auth_hash['info']['image'],
         email:    auth_hash['info']['email']
       })
     end
@@ -109,10 +106,6 @@ module DeviseTokenAuth
 
     def resource_name
       resource_class
-    end
-
-    def omniauth_window_type
-      omniauth_params['omniauth_window_type']
     end
 
     def auth_origin_url
@@ -176,8 +169,8 @@ module DeviseTokenAuth
       @auth_params
     end
 
-    def set_token_on_resource
-      @resource.tokens[@client_id] = {
+    def set_token_on_authentication
+      @authentication.tokens[@client_id] = {
         token: BCrypt::Password.create(@token),
         expiry: @expiry
       }
@@ -230,10 +223,15 @@ module DeviseTokenAuth
 
     def get_resource_from_auth_hash
       # find or create user by provider and provider uid
-      @resource = resource_class.where({
+      @authentication = Authentication.where({
         uid:      auth_hash['uid'],
         provider: auth_hash['provider']
       }).first_or_initialize
+
+      @authentication.data = auth_hash
+      @authentication.save if @authentication.persisted?
+
+      @resource = @authentication.user || @authentication.build_user
 
       if @resource.new_record?
         @oauth_registration = true
@@ -249,6 +247,5 @@ module DeviseTokenAuth
 
       @resource
     end
-
   end
 end

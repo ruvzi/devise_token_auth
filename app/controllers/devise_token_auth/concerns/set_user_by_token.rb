@@ -33,17 +33,19 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     # check for an existing user, authenticated via warden/devise
     devise_warden_user =  warden.user(rc.to_s.underscore.to_sym)
+
     if devise_warden_user && devise_warden_user.tokens[@client_id].nil?
       @used_auth_by_token = false
       @resource = devise_warden_user
-      @resource.create_new_auth_token
+      @authentication = @resource.authentications.uid(uid).first
+      @authentication.create_new_auth_token
     end
 
     # user has already been found and authenticated
     return @resource if @resource and @resource.class == rc
 
     # ensure we clear the client_id
-    if !@token
+    unless @token
       @client_id = nil
       return
     end
@@ -51,15 +53,18 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     return false unless @token
 
     # mitigate timing attacks by finding by uid instead of auth token
-    user = uid && rc.find_by_uid(uid)
+    authentication = uid && Authentication.find_by(uid: uid)
+    user = authentication.user
 
-    if user && user.valid_token?(@token, @client_id)
+    if user && authentication.valid_token?(@token, @client_id)
       sign_in(:user, user, store: false, bypass: true)
-      return @resource = user
+      @authentication = authentication
+      @resource = user
     else
       # zero all values previously set values
       @client_id = nil
-      return @resource = nil
+      @authentication = nil
+      @resource = nil
     end
   end
 
@@ -72,7 +77,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     @client_id = nil unless @used_auth_by_token
 
     if @used_auth_by_token and not DeviseTokenAuth.change_headers_on_each_request
-      auth_header = @resource.build_auth_header(@token, @client_id)
+      auth_header = @authentication.build_auth_header(@token, @client_id)
 
       # update the response header
       response.headers.merge!(auth_header)
@@ -87,20 +92,11 @@ module DeviseTokenAuth::Concerns::SetUserByToken
         # another processes has updated it during that processing
         @is_batch_request = is_batch_request?(@resource, @client_id)
 
-        auth_header = {}
-
         # extend expiration of batch buffer to account for the duration of
         # this request
-        if @is_batch_request
-          auth_header = @resource.extend_batch_buffer(@token, @client_id)
-
-        # update Authorization response header with new token
-        else
-          auth_header = @resource.create_new_auth_token(@client_id)
-
-          # update the response header
-          response.headers.merge!(auth_header)
-        end
+        auth_header =  @is_batch_request ? @authentication.extend_batch_buffer(@token, @client_id) : @authentication.create_new_auth_token(@client_id)
+        # update the response header
+        response.headers.merge!(auth_header)
 
       end # end lock
 
@@ -114,7 +110,6 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     else
       mapping = Devise.mappings[resource_name] || Devise.mappings.values.first
     end
-
     mapping.to
   end
 

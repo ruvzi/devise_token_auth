@@ -44,14 +44,15 @@ module DeviseTokenAuth
         email = resource_params[:email]
       end
 
-      q = "uid = ? AND provider='email'"
+      q = "authentications.uid = ? AND authentications.provider='email'"
 
       # fix for mysql default case insensitivity
       if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
-        q = "BINARY uid = ? AND provider='email'"
+        q = 'BINARY' + q
       end
 
-      @resource = resource_class.where(q, email).first
+      @resource = resource_class.joins(:authentications).where(q, email).first
+      @authentication = @resource.authentications.uid(email).first
 
       errors = nil
       error_status = 400
@@ -93,13 +94,13 @@ module DeviseTokenAuth
         reset_password_token: resource_params[:reset_password_token]
       })
 
-      if @resource and @resource.id
+      if @resource and @authentication && @authentication.persisted?
         client_id  = SecureRandom.urlsafe_base64(nil, false)
         token      = SecureRandom.urlsafe_base64(nil, false)
         token_hash = BCrypt::Password.create(token)
         expiry     = (Time.now + DeviseTokenAuth.token_lifespan).to_i
 
-        @resource.tokens[client_id] = {
+        @authentication.tokens[client_id] = {
           token:  token_hash,
           expiry: expiry
         }
@@ -107,6 +108,7 @@ module DeviseTokenAuth
         # ensure that user is confirmed
         @resource.skip_confirmation! if @resource.devise_modules.include?(:confirmable) && !@resource.confirmed_at
 
+        @authentication.save!
         @resource.save!
         yield if block_given?
 
@@ -125,7 +127,7 @@ module DeviseTokenAuth
 
     def update
       # make sure user is authorized
-      unless @resource
+      unless @authentication
         return render json: {
           success: false,
           errors: ['Unauthorized']
@@ -133,10 +135,10 @@ module DeviseTokenAuth
       end
 
       # make sure account doesn't use oauth2 provider
-      unless @resource.provider == 'email'
+      unless @authentication.provider.eql?('email')
         return render json: {
           success: false,
-          errors: [I18n.t("devise_token_auth.passwords.password_not_required", provider: @resource.provider.humanize)]
+          errors: [I18n.t("devise_token_auth.passwords.password_not_required", provider: @authentication.provider.humanize)]
         }, status: 422
       end
 
@@ -184,6 +186,5 @@ module DeviseTokenAuth
     def password_resource_params
       params.permit(devise_parameter_sanitizer.for(:account_update))
     end
-
   end
 end

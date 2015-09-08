@@ -1,0 +1,17 @@
+class DeviseTokenAuthCreateAuthentications < ActiveRecord::Migration
+  def change
+    drop_table :authentications if (table_exists? :authentications)
+    create_table :authentications do |t|
+      t.belongs_to :<%= user_class.underscore%>
+      t.string :provider, null: false, default: 'email'
+      t.string :uid, null: false, default: ''
+      t.text :data
+
+      ## Tokens
+      <%= json_supported_database? ? 't.json :tokens' : 't.text :tokens' %>
+
+      t.timestamps
+    end
+    add_index :authentications, [:uid, :provider], unique: true
+  end
+end

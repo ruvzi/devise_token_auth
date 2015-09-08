@@ -12,12 +12,12 @@ module DeviseTokenAuth
     end
 
     def copy_migrations
-      if self.class.migration_exists?("db/migrate", "devise_token_auth_create_#{ user_class.underscore }")
-        say_status("skipped", "Migration 'devise_token_auth_create_#{ user_class.underscore }' already exists")
+      if self.class.migration_exists?("db/migrate", "devise_token_auth_create_authentications")
+        say_status("skipped", "Migration 'devise_token_auth_create_authentications' already exists")
       else
         migration_template(
-          "devise_token_auth_create_users.rb.erb",
-          "db/migrate/devise_token_auth_create_#{ user_class.pluralize.underscore }.rb"
+          "devise_token_auth_create_authentications.rb.erb",
+          "db/migrate/devise_token_auth_create_authentications.rb"
         )
       end
     end

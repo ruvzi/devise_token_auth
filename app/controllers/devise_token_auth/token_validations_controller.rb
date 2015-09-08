@@ -5,11 +5,11 @@ module DeviseTokenAuth
 
     def validate_token
       # @resource will have been set by set_user_token concern
-      if @resource
+      if @authentication
         yield if block_given?
         render json: {
           success: true,
-          data: @resource.token_validation_response
+          data: @authentication.token_validation_response
         }
       else
         render json: {
