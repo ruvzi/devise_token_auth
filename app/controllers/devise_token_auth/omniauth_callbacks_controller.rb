@@ -77,7 +77,7 @@ module DeviseTokenAuth
     # break out provider attribute assignment for easy method extension
     def assign_provider_attrs(user, auth_hash)
       user.assign_attributes({
-        email:    auth_hash['info']['email']
+        email: auth_hash.recursive_find_by_key('email').presence.try(:downcase)
       })
     end
 
@@ -161,7 +161,7 @@ module DeviseTokenAuth
       @auth_params = {
         auth_token:     @token,
         client_id: @client_id,
-        uid:       @resource.uid,
+        uid:       @authentication.uid,
         expiry:    @expiry,
         config:    @config
       }
@@ -223,15 +223,26 @@ module DeviseTokenAuth
 
     def get_resource_from_auth_hash
       # find or create user by provider and provider uid
-      @authentication = Authentication.where({
-        uid:      auth_hash['uid'],
-        provider: auth_hash['provider']
-      }).first_or_initialize
+      @resource = current_user
+      if @resource.blank?
+        if (auth_email = auth_hash.recursive_find_by_key('email').presence.try(:downcase)).present?
+          @resource = resource_class.find_by(email: auth_email)
+        end
+        binding.pry
+        @resource ||= if (authentication = Authentication.where(provider: auth_hash['provider'], uid: auth_hash['uid']).first).present?
+                        binding.pry
+                        authentication.user
+                      else
+                        binding.pry
+                        email = auth_email || "#{auth_hash['uid']}.#{auth_hash.provider}@example.com"
+                        find_or_initialize_by(email: email)
+                      end
+      end
+      @authentication = @resource.authentications.find_or_initialize_by(provider: auth_hash['provider'], uid: auth_hash['uid'])
+      binding.pry
 
       @authentication.data = auth_hash
       @authentication.save if @authentication.persisted?
-
-      @resource = @authentication.user || @authentication.build_user
 
       if @resource.new_record?
         @oauth_registration = true
@@ -244,6 +255,7 @@ module DeviseTokenAuth
       # assign any additional (whitelisted) attributes
       extra_params = whitelisted_params
       @resource.assign_attributes(extra_params) if extra_params
+      binding.pry
 
       @resource
     end

@@ -48,7 +48,7 @@ module DeviseTokenAuth
         yield if block_given?
 
         render json: {
-          data: @authentication.token_validation_response
+          data: @authentication.decorate.token_validation_response
         }
 
       elsif @resource and not (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)

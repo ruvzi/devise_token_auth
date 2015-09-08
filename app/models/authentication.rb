@@ -24,20 +24,6 @@ class Authentication < ActiveRecord::Base
   # get rid of dead tokens
   before_save :destroy_expired_tokens
 
-  class << self
-    def tokens_match?(token_hash, token)
-      @token_equality_cache ||= {}
-
-      key = "#{token_hash}/#{token}"
-      result = @token_equality_cache[key] ||= (::BCrypt::Password.new(token_hash) == token)
-      if @token_equality_cache.size > 10000
-        @token_equality_cache = {}
-      end
-      result
-    end
-  end
-
-
   def valid_token?(token, client_id='default')
     client_id ||= 'default'
 
@@ -111,8 +97,6 @@ class Authentication < ActiveRecord::Base
   end
 
   def build_auth_header(token, client_id='default')
-    client_id ||= 'default'
-
     # client may use expiry to prevent validation request if expired
     # must be cast as string or headers will break
     expiry = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
@@ -142,12 +126,6 @@ class Authentication < ActiveRecord::Base
     return build_auth_header(token, client_id)
   end
 
-  def token_validation_response
-    self.as_json(except: [
-                     :tokens, :created_at, :updated_at
-                 ])
-  end
-
   protected
 
   def set_empty_token_hash
@@ -155,7 +133,7 @@ class Authentication < ActiveRecord::Base
   end
 
   def sync_uid
-    self.uid = self.user.email if provider == 'email'
+    self.uid = self.user.email if provider.eql?('email')
   end
 
   def destroy_expired_tokens
