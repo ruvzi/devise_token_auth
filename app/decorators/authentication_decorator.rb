@@ -2,37 +2,37 @@ class AuthenticationDecorator < Draper::Decorator
   delegate_all
 
   def full_name
-    [first_name, last_name].compact.join(' ').presence || info.name
+    [first_name, last_name].compact.join(' ').presence || info['name']
   end
 
   def first_name
-    %w(instagram twitter).include?(provider) ? info_name.first : info.first_name
+    %w(instagram twitter).include?(provider) ? info_name.first : info['first_name']
   end
 
   def last_name
-    %w(instagram twitter).include?(provider) ? info_name.last : info.last_name
+    %w(instagram twitter).include?(provider) ? info_name.last : info['last_name']
   end
 
   def info_name
-    info.name.split(' ').join(' ').to_s[/([\S]+) ([\S]+)/i]
+    info['name'].split(' ').join(' ').to_s[/([\S]+) ([\S]+)/i]
     [$1, $2]
   end
 
   def url
-    case auth.provider
+    case provider
       when 'instagram'
-        "http://instagram.com/#{auth.info.nickname}"
+        "http://instagram.com/#{info['nickname']}"
       when 'youtube'
-        auth.extra.user_hash.link.first.href
+        auth['extra']['user_hash']['link'].first['href']
       when 'tumblr'
-        auth.info.blogs.first.url
+        info['blogs'].first['url']
       else
-        (urls = auth.info.urls).present? ? (urls[auth.provider.capitalize] || urls[auth.provider]) : 'auth_url'
+        (urls = info['urls']).present? ? (urls[provider.capitalize] || urls[provider]) : 'auth_url'
     end
   end
 
   def image_uri
-    image_uri = info.image.presence || info.avatar.presence || raw_info['pic_1'].presence
+    image_uri = info['image'].presence || info['avatar'].presence || raw_info['pic_1'].presence
     if image_uri.present?
       image_uri = image_uri.gsub('http://','https://') + '?type=large' if provider.eql?('facebook')
       image_uri = image_uri.gsub('photoType=4','photoType=3') if provider.eql?('odnoklassniki')
@@ -47,10 +47,10 @@ class AuthenticationDecorator < Draper::Decorator
 
   def gender
     if raw_info.present?
-      if raw_info.gender.present?
-        !raw_info.gender.eql?('female')
-      elsif raw_info.sex.present?
-        !raw_info.sex.eql?(1)
+      if raw_info['gender'].present?
+        !raw_info['gender'].eql?('female')
+      elsif raw_info['sex'].present?
+        !raw_info['sex'].eql?(1)
       end
     end
   end
@@ -62,15 +62,15 @@ class AuthenticationDecorator < Draper::Decorator
   def city
     city_name = case provider
                   when 'vkontakte'
-                    info.location.split(', ').last
+                    info['location'].split(', ').last
                   when 'odnoklassniki'
-                    raw_info.location.city
+                    raw_info['location'].city
                   when 'facebook'
-                    raw_info.location.try(:name)
+                    raw_info['location'].try(:name)
                   when 'twitter'
-                    raw_info.location
+                    raw_info['location']
                   else
-                    info.location
+                    info['location']
                 end
     if city_name.present?
       country.present? ? country.cities.find_by_name(city_name) :
@@ -85,9 +85,9 @@ class AuthenticationDecorator < Draper::Decorator
   def country
     country_name = case provider
                      when 'vkontakte'
-                       info.location.split(', ').first
+                       info['location'].split(', ').first
                      when 'odnoklassniki'
-                       raw_info.location["countryName"]
+                       raw_info['location']["countryName"]
                      else
                        nil
                    end
@@ -95,11 +95,11 @@ class AuthenticationDecorator < Draper::Decorator
   end
 
   def provider
-    auth.provider
+    auth['provider']
   end
 
-  def token_validation_response
-    JSON.parse(h.render(partial: '/api/v1/users/user', locals: {user: object.user.decorate}, formats: :json))
+  def user_response
+    object.user.decorate.user_response
   end
 
   protected
@@ -108,11 +108,10 @@ class AuthenticationDecorator < Draper::Decorator
   end
 
   def info
-    auth.info
+    auth['info']
   end
 
   def raw_info
-    auth.extra.raw_info
+    auth['extra'].try([],'raw_info')
   end
-
 end

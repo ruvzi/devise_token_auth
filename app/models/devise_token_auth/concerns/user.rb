@@ -22,11 +22,10 @@ module DeviseTokenAuth::Concerns::User
     end
 
     has_many :authentications, dependent: :destroy, autosave: true
-    has_one  :authentication
+    has_one  :authentication, -> {where(provider: 'email')}
 
     delegate :tokens, to: :authentication
 
-    before_save :build_authentication, if: :no_authentications?
     # don't use default devise email validation
     def email_required?
       false

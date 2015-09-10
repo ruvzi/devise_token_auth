@@ -31,7 +31,7 @@ module DeviseTokenAuth
         unless DeviseTokenAuth.redirect_whitelist.include?(redirect_url)
           return render json: {
             status: 'error',
-            data:   @resource.as_json,
+            data: @resource.decorate.user_response,
             errors: [I18n.t("devise_token_auth.passwords.not_allowed_redirect_url", redirect_url: redirect_url)]
           }, status: 403
         end
@@ -93,8 +93,9 @@ module DeviseTokenAuth
       @resource = resource_class.reset_password_by_token({
         reset_password_token: resource_params[:reset_password_token]
       })
+      @authentication = @resource.authentication
 
-      if @resource and @authentication && @authentication.persisted?
+      if @resource && @authentication && @authentication.persisted?
         client_id  = SecureRandom.urlsafe_base64(nil, false)
         token      = SecureRandom.urlsafe_base64(nil, false)
         token_hash = BCrypt::Password.create(token)
@@ -112,7 +113,7 @@ module DeviseTokenAuth
         @resource.save!
         yield if block_given?
 
-        redirect_to(@resource.build_auth_url(params[:redirect_url], {
+        redirect_to(@authentication.build_auth_url(params[:redirect_url], {
           token:          token,
           client_id:      client_id,
           reset_password: true,
@@ -155,7 +156,7 @@ module DeviseTokenAuth
         return render json: {
           success: true,
           data: {
-            user: @resource,
+            user: @resource.decorate.user_response,
             message: I18n.t("devise_token_auth.passwords.successfully_updated")
           }
         }
@@ -170,7 +171,7 @@ module DeviseTokenAuth
     protected
 
     def resource_update_method
-      if DeviseTokenAuth.check_current_password_before_update != false
+      if !!DeviseTokenAuth.check_current_password_before_update
         "update_with_password"
       else
         "update_attributes"

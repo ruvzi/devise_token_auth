@@ -2,7 +2,7 @@ module DeviseTokenAuth
   class ConfirmationsController < DeviseTokenAuth::ApplicationController
     def show
       @resource = resource_class.confirm_by_token(params[:confirmation_token])
-
+      @authentication = @resource.authentication
       if @resource && @authentication && @authentication.persisted?
         # create client id
         client_id  = SecureRandom.urlsafe_base64(nil, false)
@@ -15,6 +15,7 @@ module DeviseTokenAuth
           expiry: expiry
         }
 
+        @authentication.save!
         @resource.save!
 
         yield if block_given?

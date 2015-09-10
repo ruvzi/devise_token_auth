@@ -9,7 +9,7 @@ module DeviseTokenAuth
         yield if block_given?
         render json: {
           success: true,
-          data: @authentication.decorate.token_validation_response
+          data: @authentication.decorate.user_response
         }
       else
         render json: {

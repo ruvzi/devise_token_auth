@@ -35,12 +35,12 @@ module DeviseTokenAuth
 
       sign_in(:user, @resource, store: false, bypass: false)
 
+      @authentication.save!
       @resource.save!
       @resource.omniauth_success_callback!(@authentication.reload) if @resource.respond_to?(:omniauth_success_callback!)
 
       yield if block_given?
-
-      render_data_or_redirect('deliverCredentials', @auth_params.as_json, @resource.as_json)
+      render_data_or_redirect('deliverCredentials', @auth_params.as_json, @authentication.decorate.user_response)
     end
 
     def omniauth_failure
@@ -123,7 +123,6 @@ module DeviseTokenAuth
     # must be destroyed immediatly after it is accessed by omniauth_success
     def auth_hash
       @_auth_hash ||= session.delete('dta.omniauth.auth')
-      @_auth_hash
     end
 
     # ensure that this controller responds to :devise_controller? conditionals.
@@ -228,18 +227,14 @@ module DeviseTokenAuth
         if (auth_email = auth_hash.recursive_find_by_key('email').presence.try(:downcase)).present?
           @resource = resource_class.find_by(email: auth_email)
         end
-        binding.pry
         @resource ||= if (authentication = Authentication.where(provider: auth_hash['provider'], uid: auth_hash['uid']).first).present?
-                        binding.pry
                         authentication.user
                       else
-                        binding.pry
                         email = auth_email || "#{auth_hash['uid']}.#{auth_hash.provider}@example.com"
                         find_or_initialize_by(email: email)
                       end
       end
       @authentication = @resource.authentications.find_or_initialize_by(provider: auth_hash['provider'], uid: auth_hash['uid'])
-      binding.pry
 
       @authentication.data = auth_hash
       @authentication.save if @authentication.persisted?
@@ -255,8 +250,6 @@ module DeviseTokenAuth
       # assign any additional (whitelisted) attributes
       extra_params = whitelisted_params
       @resource.assign_attributes(extra_params) if extra_params
-      binding.pry
-
       @resource
     end
   end

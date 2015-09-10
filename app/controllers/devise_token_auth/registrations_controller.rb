@@ -25,7 +25,7 @@ module DeviseTokenAuth
       if resource_class.devise_modules.include?(:confirmable) && !redirect_url
         return render json: {
           status: 'error',
-          data:   @resource.as_json,
+          data:   @resource.decorate.user_response,
           errors: [I18n.t("devise_token_auth.registrations.missing_confirm_success_url")]
         }, status: 403
       end
@@ -35,7 +35,7 @@ module DeviseTokenAuth
         unless DeviseTokenAuth.redirect_whitelist.include?(redirect_url)
           return render json: {
             status: 'error',
-            data:   @resource.as_json,
+            data:   @resource.decorate.user_response,
             errors: [I18n.t("devise_token_auth.registrations.redirect_url_not_allowed", redirect_url: redirect_url)]
           }, status: 403
         end
@@ -45,19 +45,14 @@ module DeviseTokenAuth
         # override email confirmation, must be sent manually from ctrl
         resource_class.skip_callback("create", :after, :send_on_create_confirmation_instructions)
         if @resource.save
+          @authentication = @resource.create_authentication
           yield @resource if block_given?
 
-          unless @resource.confirmed?
-            # user will require email authentication
-            @resource.send_confirmation_instructions({
-              client_config: params[:config_name],
-              redirect_url: redirect_url
-            })
-
-          else
+          if @resource.confirmed?
             # email auth has been bypassed, authenticate user
             @client_id = SecureRandom.urlsafe_base64(nil, false)
             @token     = SecureRandom.urlsafe_base64(nil, false)
+
 
             @authentication.tokens[@client_id] = {
               token: BCrypt::Password.create(@token),
@@ -68,17 +63,22 @@ module DeviseTokenAuth
             @resource.save!
 
             update_auth_header
+          else
+            @resource.send_confirmation_instructions({
+                                                         client_config: params[:config_name],
+                                                         redirect_url: redirect_url
+                                                     })
           end
 
           render json: {
             status: 'success',
-            data:   @resource.as_json
+            data:   @resource.decorate.user_response
           }
         else
           clean_up_passwords @resource
           render json: {
             status: 'error',
-            data:   @resource.as_json,
+            data:   @resource.user_response,
             errors: @resource.errors.to_hash.merge(full_messages: @resource.errors.full_messages)
           }, status: 403
         end
@@ -86,7 +86,7 @@ module DeviseTokenAuth
         clean_up_passwords @resource
         render json: {
           status: 'error',
-          data:   @resource.as_json,
+          data:   @resource.decorate.user_response,
           errors: [I18n.t("devise_token_auth.registrations.email_already_exists", email: @resource.email)]
         }, status: 403
       end
@@ -98,7 +98,7 @@ module DeviseTokenAuth
           yield @resource if block_given?
           render json: {
             status: 'success',
-            data:   @resource.as_json
+            data:   @resource.decorate.user_response
           }
         else
           render json: {
