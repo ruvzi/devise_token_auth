@@ -81,4 +81,9 @@ module DeviseTokenAuth::Concerns::User
   def no_authentications?
     authentications.count.zero?
   end
+
+  protected
+  def authentication_email
+    self.authentication.update(uid: self.email)
+  end
 end

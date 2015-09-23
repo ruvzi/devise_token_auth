@@ -29,7 +29,7 @@ module DeviseTokenAuth
         end
 
         @resource = resource_class.joins(:authentications).where(q, q_value).first
-        @authentication = @resource.authentications.uid(q_value).first
+        @authentication = @resource.authentication if @resource
       end
 
       if @resource and valid_params?(field, q_value) and @resource.valid_password?(resource_params[:password]) and (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
