@@ -1,0 +1,30 @@
+en:
+  devise_token_auth:
+    sessions:
+      not_confirmed: "Письмо подтверждения для Вашей учетной записи было отправлено на %{email}. Вы должны следовать инструкциям, приведенным в электронном письме, для активации вашей учетной записи"
+      bad_credentials: "Неверные логин или пароль. Пожалуйста, попробуйте еще раз."
+      not_supported: "Используйте POST / sign_in, чтобы войти. GET не поддерживается."
+      user_not_found: "Учетная запись не найдена или не авторизирована."
+    token_validations:
+      invalid: "Неверные логин или пароль"
+    registrations:
+      missing_confirm_success_url: "Отсутствует параметр `confirm_success_url`."
+      redirect_url_not_allowed: "Перенаправление на %{redirect_url} не допускаются."
+      email_already_exists: "Учетная запись уже существует для %{email}"
+      account_with_uid_destroyed: "Учетная запись с uid %{uid} был удален."
+      account_to_destroy_not_found: "Не удалось найти учетную запись для удаления."
+      user_not_found: "Учетная запись не найдена."
+    passwords:
+      missing_email: "Вы должны указать адрес электронной почты."
+      missing_redirect_url: "Необходимо redirect url."
+      not_allowed_redirect_url: "Перенаправление на %{redirect_url} не допускаются."
+      sended: "Письмо с инструкцией для сброса пароля было отправлено на %{email}."
+      user_not_found: "Невозможно найти пользователя с электронной почтой '%{email}'."
+      password_not_required: "Для этой учетной записи не требуется пароль. Войдите при помощи учетной записи в %{provider}."
+      missing_passwords: 'Вы должны заполнить поля, помеченные "пароль" и "подтверждение пароля".'
+      successfully_updated: "Ваш пароль был успешно изменен."
+
+  errors:
+    validate_sign_up_params: "Пожалуйста, отправьте правильные регистрационные данные в теле запроса."
+    validate_account_update_params: "Пожалуйста, отправьте правильные обновленные данные учетной записи в теле запроса."
+    not_email: "не является электронный почтой"
