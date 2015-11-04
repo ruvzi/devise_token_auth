@@ -16,9 +16,9 @@ gemspec
 group :development, :test do
   gem 'thor'
   gem "figaro"
-  gem 'omniauth-github',        :git => 'git://github.com/intridea/omniauth-github.git'
-  gem 'omniauth-facebook',      '~> 2.1.0'
-  gem 'omniauth-google-oauth2', :git => 'git://github.com/zquestz/omniauth-google-oauth2.git'
+  gem 'omniauth-github'
+  gem 'omniauth-facebook'
+  gem 'omniauth-google-oauth2'
   gem 'rack-cors',              :require => 'rack/cors'
   gem 'attr_encrypted'
 
