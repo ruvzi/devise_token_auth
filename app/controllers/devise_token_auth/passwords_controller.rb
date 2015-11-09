@@ -109,6 +109,8 @@ module DeviseTokenAuth
         # ensure that user is confirmed
         @resource.skip_confirmation! if @resource.devise_modules.include?(:confirmable) && !@resource.confirmed_at
 
+        @resource.allow_password_change = true
+
         @authentication.save!
         @resource.save!
         yield if block_given?
@@ -152,6 +154,7 @@ module DeviseTokenAuth
       end
 
       if @resource.send(resource_update_method, password_resource_params)
+        @resource.allow_password_change = false
         yield if block_given?
         return render json: {
           success: true,
@@ -171,10 +174,10 @@ module DeviseTokenAuth
     protected
 
     def resource_update_method
-      if !!DeviseTokenAuth.check_current_password_before_update
-        "update_with_password"
+      if DeviseTokenAuth.check_current_password_before_update == false or @resource.allow_password_change == true
+        'update_attributes'
       else
-        "update_attributes"
+        'update_with_password'
       end
     end
 

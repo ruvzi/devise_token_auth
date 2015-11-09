@@ -5,9 +5,7 @@ module DeviseTokenAuth
     after_action :reset_session, :only => [:destroy]
 
     def new
-      render json: {
-        errors: [ I18n.t("devise_token_auth.sessions.not_supported")]
-      }, status: 405
+      redirect_to root_url
     end
 
     def create

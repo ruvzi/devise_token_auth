@@ -33,13 +33,14 @@ module DeviseTokenAuth
         @resource.skip_confirmation!
       end
 
-      sign_in(:user, @resource, store: false, bypass: false)
+      sign_in(:user, @resource, store: false, bypass: true)
 
       @authentication.save!
       @resource.save!
       @resource.omniauth_success_callback!(@authentication.reload) if @resource.respond_to?(:omniauth_success_callback!)
 
       yield if block_given?
+      Rails.logger.debug "current_user: #{current_user.inspect}"
       render_data_or_redirect('deliverCredentials', @auth_params.as_json, @authentication.decorate.user_response)
     end
 
@@ -95,13 +96,7 @@ module DeviseTokenAuth
     end
 
     def resource_class(mapping = nil)
-      if omniauth_params['resource_class']
-        omniauth_params['resource_class'].constantize
-      elsif params['resource_class']
-        params['resource_class'].constantize
-      else
-        raise "No resource_class found"
-      end
+      (omniauth_params['resource_class'].presence || params['resource_class'].presence || 'User').constantize
     end
 
     def resource_name
@@ -109,7 +104,7 @@ module DeviseTokenAuth
     end
 
     def auth_origin_url
-      omniauth_params['auth_origin_url'] || omniauth_params['origin']
+      omniauth_params['auth_origin_url'] || omniauth_params['origin'] || root_url
     end
 
     # in the success case, omniauth_window_type is in the omniauth_params.
@@ -122,7 +117,7 @@ module DeviseTokenAuth
     # is to persist the omniauth auth hash value thru a redirect. the value
     # must be destroyed immediatly after it is accessed by omniauth_success
     def auth_hash
-      @_auth_hash ||= session.delete('dta.omniauth.auth')
+      @_auth_hash ||= session.delete('dta.omniauth.auth').presence || request.env['omniauth.auth'].except('extra')
     end
 
     # ensure that this controller responds to :devise_controller? conditionals.
@@ -179,7 +174,7 @@ module DeviseTokenAuth
       @data = data.merge({
         message: message
       })
-      render :layout => nil, :template => "devise_token_auth/omniauth_external_window"
+      render template: 'devise_token_auth/omniauth_external_window'
     end
 
     def render_data_or_redirect(message, data, user_data = {})
@@ -192,13 +187,12 @@ module DeviseTokenAuth
       # See app/views/devise_token_auth/omniauth_external_window.html.erb to understand
       # why we can handle these both the same.  The view is setup to handle both cases
       # at the same time.
-      if ['inAppBrowser', 'newWindow'].include?(omniauth_window_type)
+      if %w(inAppBrowser newWindow).include?(omniauth_window_type)
         render_data(message, user_data.merge(data))
 
       elsif auth_origin_url # default to same-window implementation, which forwards back to auth_origin_url
-
         # build and redirect to destination url
-        redirect_to DeviseTokenAuth::Url.generate(auth_origin_url, data)
+        redirect_to DeviseTokenAuth::Url.generate(auth_origin_url, data.merge(blank: true))
       else
         
         # there SHOULD always be an auth_origin_url, but if someone does something silly
