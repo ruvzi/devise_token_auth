@@ -2,8 +2,8 @@ module DeviseTokenAuth
   class OmniauthCallbacksController < DeviseTokenAuth::ApplicationController
 
     attr_reader :auth_params
-    skip_before_filter :set_user_by_token
-    skip_after_filter :update_auth_header
+    skip_before_action :set_user_by_token
+    skip_after_action :update_auth_header
 
     # intermediary route for successful omniauth authentication. omniauth does
     # not support multiple models, so we must resort to this terrible hack.
@@ -40,7 +40,6 @@ module DeviseTokenAuth
       @resource.omniauth_success_callback!(@authentication.reload) if @resource.respond_to?(:omniauth_success_callback!)
 
       yield if block_given?
-      Rails.logger.debug "current_user: #{current_user.inspect}"
       render_data_or_redirect('deliverCredentials', @auth_params.as_json, @authentication.decorate.user_response)
     end
 
