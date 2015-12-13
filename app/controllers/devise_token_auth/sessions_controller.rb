@@ -23,7 +23,7 @@ module DeviseTokenAuth
         q = "authentications.uid = ? AND authentications.provider='email'"
 
         if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
-          q = "BINARY " + q
+          q = 'BINARY ' + q
         end
 
         @resource = resource_class.joins(:authentications).where(q, q_value).first
@@ -52,12 +52,12 @@ module DeviseTokenAuth
       elsif @resource and not (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
         render json: {
           success: false,
-          errors: [ I18n.t("devise_token_auth.sessions.not_confirmed", email: @resource.email) ]
+          errors: [ I18n.t('devise_token_auth.sessions.not_confirmed', email: @resource.email) ]
         }, status: 401
 
       else
         render json: {
-          errors: [I18n.t("devise_token_auth.sessions.bad_credentials")]
+          errors: [I18n.t('devise_token_auth.sessions.bad_credentials')]
         }, status: 401
       end
     end
@@ -83,6 +83,38 @@ module DeviseTokenAuth
         render json: {
           errors: [I18n.t("devise_token_auth.sessions.user_not_found")]
         }, status: 404
+      end
+    end
+
+    def login_as
+      account = Account.find_by(id: params[:account_id])
+      user = account.try(:user)
+      if user && ((is_admin = session[:admin_id].eql?(user.id)) || can?(:login_as, user))
+        if is_admin
+          session.delete(:admin_id)
+        else
+          admin_id = current_user.id
+        end
+        @resource = user
+        @authentication = @resource.authentication if @resource
+        @client_id = SecureRandom.urlsafe_base64(nil, false)
+        @token     = SecureRandom.urlsafe_base64(nil, false)
+
+        @authentication.tokens[@client_id] = {
+            token: BCrypt::Password.create(@token),
+            expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
+        }
+        @authentication.save
+
+        sign_in(:user, @resource, store: false, bypass: true)
+        session[:admin_id] = admin_id
+
+        render json: {
+                   success: true,
+                   data: @authentication.decorate.user_response
+               }
+      else
+        render json: {error: 'unauthorized', status: 401}, status: 401
       end
     end
 
@@ -121,6 +153,5 @@ module DeviseTokenAuth
     def resource_params
       params.permit(devise_parameter_sanitizer.for(:sign_in))
     end
-
   end
 end
