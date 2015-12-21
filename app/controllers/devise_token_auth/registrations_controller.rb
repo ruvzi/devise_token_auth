@@ -94,6 +94,7 @@ module DeviseTokenAuth
 
     def update
       if @resource
+        @resource.skip_confirmation! if can?(:update_without_password, @resource)
         if @resource.send(resource_update_method, account_update_params)
           yield @resource if block_given?
           render json: {
@@ -142,14 +143,16 @@ module DeviseTokenAuth
     private
 
     def resource_update_method
-      if DeviseTokenAuth.check_current_password_before_update == :attributes
-        "update_with_password"
+      if account_update_params.has_key?(:password) && can?(:update_without_password, @resource)
+        'update_without_password'
+      elsif DeviseTokenAuth.check_current_password_before_update == :attributes
+        'update_with_password'
       elsif DeviseTokenAuth.check_current_password_before_update == :password and account_update_params.has_key?(:password)
-        "update_with_password"
+        'update_with_password'
       elsif account_update_params.has_key?(:current_password)
-        "update_with_password"
+        'update_with_password'
       else
-        "update_attributes"
+        'update_attributes'
       end
     end
 
