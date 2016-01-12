@@ -43,12 +43,12 @@ module DeviseTokenAuth
 
       begin
         # override email confirmation, must be sent manually from ctrl
-        resource_class.skip_callback("create", :after, :send_on_create_confirmation_instructions)
+        resource_class.skip_callback(:create, :after, :send_on_create_confirmation_instructions)
         if @resource.save
           @authentication = @resource.create_authentication
           yield @resource if block_given?
 
-          if @resource.confirmed?
+          if @resource.active_for_authentication?
             # email auth has been bypassed, authenticate user
             @client_id = SecureRandom.urlsafe_base64(nil, false)
             @token     = SecureRandom.urlsafe_base64(nil, false)
@@ -63,7 +63,9 @@ module DeviseTokenAuth
             @resource.save!
 
             update_auth_header
-          else
+          end
+
+          unless @resource.confirmed?
             @resource.send_confirmation_instructions({
                                                          client_config: params[:config_name],
                                                          redirect_url: redirect_url
