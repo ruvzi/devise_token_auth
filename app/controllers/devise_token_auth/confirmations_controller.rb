@@ -1,5 +1,17 @@
 module DeviseTokenAuth
   class ConfirmationsController < DeviseTokenAuth::ApplicationController
+    before_filter :set_user_by_token, only: [:new]
+
+    def new
+      @resource.send_confirmation_instructions
+      render json: {success: successfully_sent?(@resource)}
+    end
+
+    def create
+      #TODO add send by find email
+      @resource = resource_class.send_confirmation_instructions(resource_params)
+    end
+
     def show
       @resource = resource_class.confirm_by_token(params[:confirmation_token])
       @authentication = @resource.authentication
@@ -20,7 +32,7 @@ module DeviseTokenAuth
 
         yield if block_given?
 
-        redirect_to(@authentication.build_auth_url(params[:redirect_url], {
+        redirect_to(@authentication.build_auth_url(params[:redirect_url].presence || root_url, {
           token:                        token,
           client_id:                    client_id,
           account_confirmation_success: true,
