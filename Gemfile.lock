@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    devise_token_auth (0.2.12)
+    devise_token_auth (0.2.13)
       devise (~> 3.5.2)
       draper (~> 1.4.0)
       rails (= 4.2.5)
@@ -54,7 +54,7 @@ GEM
     codeclimate-test-reporter (0.4.8)
       simplecov (>= 0.7.1, < 1.0.0)
     coderay (1.1.0)
-    devise (3.5.3)
+    devise (3.5.5)
       bcrypt (~> 3.0)
       orm_adapter (~> 0.1)
       railties (>= 3.2.6, < 5)
@@ -191,7 +191,7 @@ GEM
       activesupport (= 4.2.5)
       rake (>= 0.8.7)
       thor (>= 0.18.1, < 2.0)
-    rake (10.4.2)
+    rake (10.5.0)
     rb-fsevent (0.9.6)
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)

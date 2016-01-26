@@ -14,7 +14,7 @@ module DeviseTokenAuth
 
     def show
       @resource = resource_class.confirm_by_token(params[:confirmation_token])
-      @authentication = @resource.authentication
+      @authentication = @resource.authentication || @resource.create_authentication
       if @resource && @authentication && @authentication.persisted?
         # create client id
         client_id  = SecureRandom.urlsafe_base64(nil, false)

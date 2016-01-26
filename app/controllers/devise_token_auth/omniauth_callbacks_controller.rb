@@ -231,7 +231,9 @@ module DeviseTokenAuth
       @authentication = @resource.authentications.find_or_initialize_by(provider: provider, uid: auth_hash['uid'])
 
       @authentication.data = auth_hash
-      @authentication.save if @authentication.persisted?
+      if @authentication.persisted? && @authentication.save
+        @resource.create_authentication
+      end
 
       if @resource.new_record?
         @oauth_registration = true

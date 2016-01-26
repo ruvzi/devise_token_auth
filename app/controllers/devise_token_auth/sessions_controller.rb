@@ -27,7 +27,7 @@ module DeviseTokenAuth
         end
 
         @resource = resource_class.joins(:authentications).where(q, q_value).first
-        @authentication = @resource.authentication if @resource
+        @authentication = @resource.authentication || @resource.create_authentication if @resource
       end
 
       if @resource and valid_params?(field, q_value) and @resource.valid_password?(resource_params[:password]) and (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
@@ -96,7 +96,7 @@ module DeviseTokenAuth
           admin_id = current_user.id
         end
         @resource = user
-        @authentication = @resource.authentication if @resource
+        @authentication = @resource.authentication || @resource.create_authentication if @resource
         @client_id = SecureRandom.urlsafe_base64(nil, false)
         @token     = SecureRandom.urlsafe_base64(nil, false)
 
