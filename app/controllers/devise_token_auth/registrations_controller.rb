@@ -80,8 +80,8 @@ module DeviseTokenAuth
           clean_up_passwords @resource
           render json: {
             status: 'error',
-            data:   @resource.user_response,
-            errors: @resource.errors.to_hash.merge(full_messages: @resource.errors.full_messages)
+            data:   @resource.decorate.user_response,
+            errors: @resource.errors.to_hash.merge(messages: @resource.errors.full_messages)
           }, status: 403
         end
       rescue ActiveRecord::RecordNotUnique

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    devise_token_auth (0.2.14)
+    devise_token_auth (0.2.15)
       devise (~> 3.5.2)
       draper (~> 1.4.0)
       paranoia (~> 2.0)

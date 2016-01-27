@@ -32,15 +32,6 @@ module DeviseTokenAuth::Concerns::User
       @allow_password_change || false
     end
 
-    # don't use default devise email validation
-    def email_required?
-      false
-    end
-
-    def email_changed?
-      false
-    end
-
     # override devise method to include additional info as opts hash
     def send_confirmation_instructions(opts=nil)
       unless @raw_confirmation_token
