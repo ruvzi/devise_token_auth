@@ -6,12 +6,13 @@ class DeviseTokenAuthCreateAuthentications < ActiveRecord::Migration
       t.string :provider, null: false, default: 'email'
       t.string :uid, null: false, default: ''
       t.text :data
+      t.datetime :deleted_at
 
       ## Tokens
       <%= json_supported_database? ? 't.json :tokens' : 't.text :tokens' %>
 
       t.timestamps
     end
-    add_index :authentications, [:uid, :provider], unique: true
+    add_index :authentications, [:uid, :provider, :deleted_at], unique: true
   end
 end

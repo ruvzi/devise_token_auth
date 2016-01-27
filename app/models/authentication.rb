@@ -1,6 +1,7 @@
 require 'bcrypt'
 class Authentication < ActiveRecord::Base
   belongs_to :user
+  acts_as_paranoid
 
   scope :provider, -> (provider){where(provider: provider)}
   scope :uid,      -> (uid){where(uid: uid)}
