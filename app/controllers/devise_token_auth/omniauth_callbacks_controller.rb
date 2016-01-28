@@ -232,7 +232,7 @@ module DeviseTokenAuth
 
       @authentication.data = auth_hash
       if @authentication.persisted? && @authentication.save
-        @resource.create_authentication
+        @resource.create_authentication if @resource.authentication.blank?
       end
 
       if @resource.new_record?
