@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'devise', '~> 3.5.2'
   s.add_dependency 'draper', '~> 1.4.0'
   s.add_dependency 'paranoia', '~> 2.0'
+  s.add_dependency 'apipie-rails', '~> 0.3.5'
 
   s.add_development_dependency 'sqlite3', '~> 1.3'
   s.add_development_dependency 'pg'

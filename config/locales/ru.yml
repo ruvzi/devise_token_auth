@@ -14,6 +14,7 @@ ru:
       account_with_uid_destroyed: "Учетная запись с uid %{uid} был удален."
       account_to_destroy_not_found: "Не удалось найти учетную запись для удаления."
       user_not_found: "Учетная запись не найдена."
+      not_verify_captcha: 'Подтвердите что вы не робот'
     passwords:
       missing_email: "Вы должны указать адрес электронной почты."
       missing_redirect_url: "Необходимо redirect url."

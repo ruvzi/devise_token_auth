@@ -5,6 +5,10 @@ module DeviseTokenAuth
     before_filter :validate_account_update_params, :only => :update
     skip_after_filter :update_auth_header, :only => [:create, :destroy]
 
+    api! 'registrations.create.title'
+    param :email, String, desc: 'registrations.create.params.email', required: true
+    param :password, String, desc: 'registrations.create.params.password', required: true
+    param :recaptcha, String, desc: 'registrations.create.params.recaptcha', required: true
     def create
       @resource            = resource_class.new(sign_up_params)
 
@@ -20,6 +24,16 @@ module DeviseTokenAuth
 
       # fall back to default value if provided
       redirect_url ||= DeviseTokenAuth.default_confirm_success_url
+
+      unless recaptcha_valid?(params['recaptcha'])
+        return render json: {
+            status: 'error',
+            data: {
+                errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
+            },
+            errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
+        }, status: 403
+      end
 
       # success redirect url is required
       if resource_class.devise_modules.include?(:confirmable) && !redirect_url
@@ -93,6 +107,12 @@ module DeviseTokenAuth
         }, status: 403
       end
     end
+
+    # param :user, Hash,  desc: 'New user attributes', required: true do
+    #   param :current_password, String, desc: 'User current password', required: true
+    #   param :password, String, desc: 'User password', required: true
+    #   param :password_confirmation, String, desc: 'User password confirmation', required: true
+    # end
 
     def update
       if @resource

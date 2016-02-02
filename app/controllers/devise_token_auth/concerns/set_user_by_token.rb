@@ -54,7 +54,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     # mitigate timing attacks by finding by uid instead of auth token
     authentication = uid && Authentication.find_by(uid: uid)
-    user = authentication.user
+    user = authentication.try(:user)
 
     if user && authentication.valid_token?(@token, @client_id)
       sign_in(:user, user, store: false, bypass: true)
@@ -111,6 +111,12 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       mapping = Devise.mappings[resource_name] || Devise.mappings.values.first
     end
     mapping.to
+  end
+
+  def recaptcha_valid?(code)
+    return true if code.nil?
+    response = Net::HTTP.get_response(URI.parse("https://www.google.com/recaptcha/api/siteverify?secret=#{ENV['recaptcha_private_key']}&response=#{code}&remoteip=#{request.remote_ip}"))
+    JSON.parse(response.body)['success']
   end
 
   private
