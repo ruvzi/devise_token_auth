@@ -25,7 +25,7 @@ module DeviseTokenAuth
       # fall back to default value if provided
       redirect_url ||= DeviseTokenAuth.default_confirm_success_url
 
-      unless recaptcha_valid?(params['recaptcha'])
+      unless false && recaptcha_valid?(params['recaptcha'])
         return render json: {
             status: 'error',
             data: {
