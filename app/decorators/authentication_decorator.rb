@@ -48,9 +48,9 @@ class AuthenticationDecorator < Draper::Decorator
   def gender
     if raw_info.present?
       if raw_info['gender'].present?
-        !raw_info['gender'].eql?('female')
+        raw_info['gender'].eql?('female')
       elsif raw_info['sex'].present?
-        !raw_info['sex'].eql?(1)
+        raw_info['sex'].eql?(1)
       end
     end
   end
@@ -112,6 +112,6 @@ class AuthenticationDecorator < Draper::Decorator
   end
 
   def raw_info
-    auth['extra'].try([],'raw_info')
+    auth['extra'].try([],'raw_info') || {}
   end
 end
