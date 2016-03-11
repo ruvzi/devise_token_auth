@@ -37,6 +37,7 @@ module DeviseTokenAuth
 
       @authentication.save!
       @resource.save!
+      @resource.reload
       @resource.omniauth_success_callback!(@authentication.reload) if @resource.respond_to?(:omniauth_success_callback!)
 
       yield if block_given?

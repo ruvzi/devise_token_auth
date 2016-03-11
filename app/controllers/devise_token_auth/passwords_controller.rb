@@ -52,12 +52,12 @@ module DeviseTokenAuth
       end
 
       @resource = resource_class.joins(:authentications).where(q, email).first
-      @authentication = @resource.authentications.uid(email).first
 
       errors = nil
       error_status = 400
 
       if @resource
+        @authentication = @resource.authentications.uid(email).first
         yield if block_given?
         @resource.send_reset_password_instructions({
           email: email,
