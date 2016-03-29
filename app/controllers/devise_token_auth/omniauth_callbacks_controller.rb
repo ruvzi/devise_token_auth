@@ -222,7 +222,7 @@ module DeviseTokenAuth
         if (auth_email = auth_hash.recursive_find_by_key('email').presence.try(:downcase)).present?
           @resource = resource_class.find_by(email: auth_email)
         end
-        @resource ||= if (authentication = Authentication.where(provider: provider, uid: auth_hash['uid']).first).present?
+        @resource ||= if (authentication = Authentication.where(provider: provider, uid: auth_hash['uid']).first).present? && authentication.user.present?
                         authentication.user
                       else
                         email = auth_email || "#{auth_hash['uid']}.#{auth_hash.provider}@example.com"
