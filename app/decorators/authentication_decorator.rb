@@ -6,11 +6,11 @@ class AuthenticationDecorator < Draper::Decorator
   end
 
   def first_name
-    %w(instagram twitter).include?(provider) ? info_name.first : info['first_name']
+    info['first_name'] || info_name.first
   end
 
   def last_name
-    %w(instagram twitter).include?(provider) ? info_name.last : info['last_name']
+    info['last_name'] || info_name.last
   end
 
   def info_name
