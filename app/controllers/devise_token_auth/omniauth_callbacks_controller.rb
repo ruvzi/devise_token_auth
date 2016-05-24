@@ -38,6 +38,7 @@ module DeviseTokenAuth
       @authentication.save!
       @resource.save!
       @resource.reload
+      @resource.create_authentication if @resource.authentication.blank?
       @resource.omniauth_success_callback!(@authentication.reload) if @resource.respond_to?(:omniauth_success_callback!)
 
       yield if block_given?
@@ -232,9 +233,7 @@ module DeviseTokenAuth
       @authentication = @resource.authentications.find_or_initialize_by(provider: provider, uid: auth_hash['uid'])
 
       @authentication.data = auth_hash
-      if @authentication.persisted? && @authentication.save
-        @resource.create_authentication if @resource.authentication.blank?
-      end
+      @authentication.save
 
       if @resource.new_record?
         @oauth_registration = true
