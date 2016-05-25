@@ -26,6 +26,8 @@ module DeviseTokenAuth::Concerns::User
 
     delegate :tokens, to: :authentication
 
+    after_create :add_email_authentication
+
     # allows user to change password without current_password
     attr_writer :allow_password_change
     def allow_password_change
@@ -82,5 +84,9 @@ module DeviseTokenAuth::Concerns::User
   protected
   def authentication_email
     self.authentication.update(uid: self.email)
+  end
+
+  def add_email_authentication
+    self.create_authentication if self.authentication.blank?
   end
 end
