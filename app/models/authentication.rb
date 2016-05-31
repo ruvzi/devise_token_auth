@@ -20,7 +20,6 @@ class Authentication < ActiveRecord::Base
 
   # keep uid in sync with email
   before_save :sync_uid
-  before_create :sync_uid
 
   # get rid of dead tokens
   before_save :destroy_expired_tokens
@@ -134,7 +133,9 @@ class Authentication < ActiveRecord::Base
   end
 
   def sync_uid
-    self.uid = self.user.email if provider.eql?('email')
+    if (new_uid = self.user.try(:email))
+      self.uid = new_uid if provider.eql?('email')
+    end
   end
 
   def destroy_expired_tokens
