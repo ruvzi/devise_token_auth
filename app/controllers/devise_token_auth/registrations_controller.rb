@@ -88,7 +88,7 @@ module DeviseTokenAuth
 
           render json: {
             status: 'success',
-            data:   @resource.decorate.user_response
+            data:   @authentication.decorate.user_response
           }
         else
           clean_up_passwords @resource

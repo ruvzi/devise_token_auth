@@ -159,7 +159,7 @@ module DeviseTokenAuth
         return render json: {
           success: true,
           data: {
-            user: @resource.decorate.user_response,
+            user: @authentication.decorate.user_response,
             message: I18n.t("devise_token_auth.passwords.successfully_updated")
           }
         }
