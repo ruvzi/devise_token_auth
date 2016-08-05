@@ -4,7 +4,7 @@ class Authentication < ActiveRecord::Base
   acts_as_paranoid
 
   scope :provider, -> (provider){where(provider: provider)}
-  scope :uid,      -> (uid){where(uid: uid)}
+  scope :uid,      -> (uid){where.not(user_id: nil).where(uid: uid)}
 
   validates_presence_of :uid, if: Proc.new { |u| u.provider != 'email' }
 
