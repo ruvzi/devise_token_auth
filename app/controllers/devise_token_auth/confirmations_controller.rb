@@ -1,6 +1,6 @@
 module DeviseTokenAuth
   class ConfirmationsController < DeviseTokenAuth::ApplicationController
-    before_filter :set_user_by_token, only: [:new]
+    before_action :set_user_by_token, only: [:new]
 
     def new
       @resource.send_confirmation_instructions
