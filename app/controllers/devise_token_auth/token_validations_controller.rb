@@ -12,17 +12,27 @@ module DeviseTokenAuth
     def validate_token
       # @resource will have been set by set_user_token concern
       if @authentication
-        yield if block_given?
-        render json: {
-          success: true,
-          data: @authentication.decorate.user_response
-        }
+        yield @authentication if block_given?
+        render_validate_token_success
       else
-        render json: {
+        render_validate_token_error
+      end
+    end
+
+    protected
+
+    def render_validate_token_success
+      render json: {
+          success: true,
+          data: resource_data(resource_json: @authentication.decorate.user_response)
+      }
+    end
+
+    def render_validate_token_error
+      render json: {
           success: false,
           errors: [I18n.t("devise_token_auth.token_validations.invalid")]
-        }, status: 401
-      end
+      }, status: 401
     end
   end
 end

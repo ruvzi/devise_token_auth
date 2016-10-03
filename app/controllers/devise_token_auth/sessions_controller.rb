@@ -5,7 +5,7 @@ module DeviseTokenAuth
     after_action :reset_session, :only => [:destroy]
 
     def new
-      redirect_to root_url
+      render_new_error
     end
 
     api! 'sessions.create.title'
@@ -48,20 +48,13 @@ module DeviseTokenAuth
 
         yield if block_given?
 
-        render json: {
-          data: @authentication.decorate.user_response
-        }
+        render_create_success
 
       elsif @resource and not (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
-        render json: {
-          success: false,
-          errors: [ I18n.t('devise_token_auth.sessions.not_confirmed', email: @resource.email) ]
-        }, status: 401
+        render_create_error_not_confirmed
 
       else
-        render json: {
-          errors: [I18n.t('devise_token_auth.sessions.bad_credentials')]
-        }, status: 401
+        render_create_error_bad_credentials
       end
     end
 
@@ -79,14 +72,10 @@ module DeviseTokenAuth
 
         yield if block_given?
 
-        render json: {
-          success:true
-        }, status: 200
+        render_destroy_success
 
       else
-        render json: {
-          errors: [I18n.t("devise_token_auth.sessions.user_not_found")]
-        }, status: 404
+        render_destroy_error
       end
     end
 
@@ -113,10 +102,7 @@ module DeviseTokenAuth
         sign_in(:user, @resource, store: false, bypass: true)
         session[:admin_id] = admin_id
 
-        render json: {
-                   success: true,
-                   data: @authentication.decorate.user_response
-               }
+        render_create_success
       else
         render json: {error: 'unauthorized', status: 401}, status: 401
       end
@@ -152,10 +138,47 @@ module DeviseTokenAuth
       }
     end
 
+    def render_new_error
+      render json: {
+          errors: [ I18n.t("devise_token_auth.sessions.not_supported")]
+      }, status: 405
+    end
+
+    def render_create_success
+      render json: {
+          data: resource_data(resource_json: @authentication.decorate.user_response)
+      }
+    end
+
+    def render_create_error_not_confirmed
+      render json: {
+          success: false,
+          errors: [ I18n.t("devise_token_auth.sessions.not_confirmed", email: @resource.email) ]
+      }, status: 401
+    end
+
+    def render_create_error_bad_credentials
+      render json: {
+          errors: [I18n.t("devise_token_auth.sessions.bad_credentials")]
+      }, status: 401
+    end
+
+    def render_destroy_success
+      render json: {
+          success:true
+      }, status: 200
+    end
+
+    def render_destroy_error
+      render json: {
+          errors: [I18n.t("devise_token_auth.sessions.user_not_found")]
+      }, status: 404
+    end
+
     private
 
     def resource_params
-      params.permit(devise_parameter_sanitizer.for(:sign_in))
+      params.permit(*params_for_resource(:sign_in))
     end
   end
 end

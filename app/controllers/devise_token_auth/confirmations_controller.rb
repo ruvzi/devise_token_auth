@@ -30,7 +30,7 @@ module DeviseTokenAuth
         @authentication.save!
         @resource.save!
 
-        yield if block_given?
+        yield @resource if block_given?
 
         redirect_to(@authentication.build_auth_url(params[:redirect_url].presence || root_url, {
           token:                        token,
