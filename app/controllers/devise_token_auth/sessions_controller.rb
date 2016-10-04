@@ -99,7 +99,7 @@ module DeviseTokenAuth
         }
         @authentication.save
 
-        bypass_sign_in(@resource, :user)
+        bypass_sign_in(@resource, scope: :user)
         session[:admin_id] = admin_id
 
         render_create_success

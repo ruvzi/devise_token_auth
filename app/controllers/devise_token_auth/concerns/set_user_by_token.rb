@@ -57,7 +57,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     user = authentication.try(:user)
 
     if user && authentication.valid_token?(@token, @client_id)
-      bypass_sign_in(user, :user)
+      bypass_sign_in(user, scope: :user)
       @authentication = authentication
       @resource = user
     else
