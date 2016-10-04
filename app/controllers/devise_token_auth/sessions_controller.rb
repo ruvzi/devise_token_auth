@@ -44,7 +44,7 @@ module DeviseTokenAuth
         }
         @authentication.save
 
-        sign_in(:user, @resource, store: false, bypass: false)
+        sign_in(:user, @resource, store: false)
 
         yield if block_given?
 
@@ -99,7 +99,7 @@ module DeviseTokenAuth
         }
         @authentication.save
 
-        sign_in(:user, @resource, store: false, bypass: true)
+        bypass_sign_in(@resource, :user)
         session[:admin_id] = admin_id
 
         render_create_success
