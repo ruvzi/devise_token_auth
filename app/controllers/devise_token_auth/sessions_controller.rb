@@ -33,7 +33,7 @@ module DeviseTokenAuth
         @authentication = @resource.authentication || @resource.create_authentication if @resource
       end
 
-      if @resource and valid_params?(field, q_value) and @resource.valid_password?(resource_params[:password]) and (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
+      if @resource and !@resource.blocked? and valid_params?(field, q_value) and @resource.valid_password?(resource_params[:password]) and (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
         # create client id
         @client_id = SecureRandom.urlsafe_base64(nil, false)
         @token     = SecureRandom.urlsafe_base64(nil, false)
@@ -50,6 +50,8 @@ module DeviseTokenAuth
 
         render_create_success
 
+      elsif @resource && @resource.blocked?
+        render_create_error_blocked
       elsif @resource and not (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
         render_create_error_not_confirmed
 
@@ -150,16 +152,23 @@ module DeviseTokenAuth
       }
     end
 
+    def render_create_error_blocked
+      render json: {
+          success: false,
+          errors: [ I18n.t('devise_token_auth.sessions.user_blocked') ]
+      }, status: 401
+    end
+
     def render_create_error_not_confirmed
       render json: {
           success: false,
-          errors: [ I18n.t("devise_token_auth.sessions.not_confirmed", email: @resource.email) ]
+          errors: [ I18n.t('devise_token_auth.sessions.not_confirmed', email: @resource.email) ]
       }, status: 401
     end
 
     def render_create_error_bad_credentials
       render json: {
-          errors: [I18n.t("devise_token_auth.sessions.bad_credentials")]
+          errors: [I18n.t('devise_token_auth.sessions.bad_credentials')]
       }, status: 401
     end
 
