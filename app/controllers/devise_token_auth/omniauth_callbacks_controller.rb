@@ -39,7 +39,8 @@ module DeviseTokenAuth
       @authentication.save!
       @resource.save!
       @resource.reload
-      @resource.omniauth_success_callback!(@authentication.reload) if @resource.respond_to?(:omniauth_success_callback!)
+
+      Delayed::Job.enqueue OmniauthCallbackJob.new(@resource.class, @resource.id, @authentication.id) if @resource.respond_to?(:omniauth_success_callback!)
 
       yield if block_given?
       render_data_or_redirect('deliverCredentials', @auth_params.as_json, @authentication.decorate.user_response)
