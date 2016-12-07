@@ -79,9 +79,12 @@ module DeviseTokenAuth
 
     # break out provider attribute assignment for easy method extension
     def assign_provider_attrs(user, auth_hash)
-      user.assign_attributes({
-        email: auth_hash.recursive_find_by_key('email').presence.try(:downcase)
-      })
+      attrs = {}
+      if (email = auth_hash.recursive_find_by_key('email').presence.try(:downcase)).present?
+        attrs[:email] = email
+      end
+
+      user.assign_attributes(attrs)
     end
 
     # derive allowed params from the standard devise parameter sanitizer
@@ -225,22 +228,24 @@ module DeviseTokenAuth
         if (auth_email = auth_hash.recursive_find_by_key('email').presence.try(:downcase)).present?
           @resource = resource_class.find_by(email: auth_email)
         end
-        @resource ||= if (authentication = Authentication.where(provider: provider, uid: auth_hash['uid']).first).present? && authentication.user.present?
-                        authentication.user
+        @resource ||= if (@authentication = Authentication.where(provider: provider, uid: auth_hash['uid']).first).present? && @authentication.user.present?
+                        @authentication.user
                       else
-                        email = auth_email || "#{auth_hash['uid']}.#{auth_hash.provider}@example.com"
-                        resource_class.find_or_initialize_by(email: email)
+                        email = auth_email || "#{auth_hash['uid']}.#{provider}@example.com"
+                        resource_class.find_or_initialize_by(email: email, )
                       end
+        if @resource.new_record?
+          @oauth_registration = true
+          set_random_password
+          @resource.save
+        end
       end
-      @authentication = @resource.authentications.find_or_initialize_by(provider: provider, uid: auth_hash['uid'])
+      @authentication ||= @resource.authentications.find_or_initialize_by(provider: provider, uid: auth_hash['uid'])
 
+      @authentication.user ||= @resource
       @authentication.data = auth_hash
       @authentication.save
 
-      if @resource.new_record?
-        @oauth_registration = true
-        set_random_password
-      end
 
       # sync user info with provider, update/generate auth token
       assign_provider_attrs(@resource, auth_hash)
