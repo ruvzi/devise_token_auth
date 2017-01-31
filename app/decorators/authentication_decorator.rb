@@ -18,6 +18,13 @@ class AuthenticationDecorator < Draper::Decorator
     [$1, $2]
   end
 
+  def auth_url
+    case provider
+      when 'facebook'
+        "http://facebook.com/#{uid}"
+    end
+  end
+
   def url
     case provider
       when 'instagram'
@@ -27,7 +34,7 @@ class AuthenticationDecorator < Draper::Decorator
       when 'tumblr'
         info['blogs'].first['url']
       else
-        (urls = info['urls']).present? ? (urls[provider.capitalize] || urls[provider]) : 'auth_url'
+        (urls = info && info['urls']).present? ? (urls[provider.capitalize] || urls[provider]) : auth_url
     end
   end
 
