@@ -108,7 +108,8 @@ class AuthenticationDecorator < Draper::Decorator
   def user_response
     {
         id: object.id,
-        user_id: object.user_id
+        user_id: object.user_id,
+        uid: object.uid
     }
   end
 
