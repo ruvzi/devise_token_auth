@@ -94,7 +94,7 @@ class AuthenticationDecorator < Draper::Decorator
                      when 'vkontakte'
                        info['location'].split(', ').first
                      when 'odnoklassniki'
-                       raw_info['location']["countryName"]
+                       raw_info['location']['countryName']
                      else
                        nil
                    end
@@ -109,7 +109,8 @@ class AuthenticationDecorator < Draper::Decorator
     {
         id: object.id,
         user_id: object.user_id,
-        uid: object.uid
+        uid: object.uid,
+        provider: object.provider
     }
   end
 
