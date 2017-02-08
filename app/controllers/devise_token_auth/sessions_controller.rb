@@ -44,7 +44,7 @@ module DeviseTokenAuth
         }
         @authentication.save
 
-        sign_in(:user, @resource, store: false)
+        sign_in(:user, @resource, store: true, forse: true)
 
         yield if block_given?
 

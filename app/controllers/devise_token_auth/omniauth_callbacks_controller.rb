@@ -34,7 +34,7 @@ module DeviseTokenAuth
         @resource.skip_confirmation!
       end
 
-      sign_in(:user, @resource, store: false, bypass: true)
+      sign_in(:user, @resource, store: true, bypass: true, forse: true)
 
       @authentication.save!
       @resource.save!
