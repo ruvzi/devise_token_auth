@@ -1,3 +1,7 @@
+def rake_task_db?
+  defined?(Rake) && Rake.application.top_level_tasks.any? { |task| task.include?('db:') }
+end
+
 module ActionDispatch::Routing
   class Mapper
     def mount_devise_token_auth_for(resource, opts)
@@ -23,54 +27,56 @@ module ActionDispatch::Routing
       # remove any unwanted devise modules
       opts[:skip].each{|item| controllers.delete(item)}
 
-      devise_for resource.pluralize.underscore.gsub('/', '_').to_sym,
-        class_name:   resource,
-        module:       :devise,
-        path:         opts[:at],
-        controllers:  controllers,
-        skip:         opts[:skip] + [:omniauth_callbacks]
+      unless rake_task_db?
+        devise_for resource.pluralize.underscore.gsub('/', '_').to_sym,
+          class_name:   resource,
+          module:       :devise,
+          path:         opts[:at],
+          controllers:  controllers,
+          skip:         opts[:skip] + [:omniauth_callbacks]
 
-      unnest_namespace do
-        # get full url path as if it were namespaced
-        full_path = "#{@scope[:path]}/#{opts[:at]}"
+        unnest_namespace do
+          # get full url path as if it were namespaced
+          full_path = "#{@scope[:path]}/#{opts[:at]}"
 
-        # clear scope so controller routes aren't namespaced
-        @scope = ActionDispatch::Routing::Mapper::Scope.new(
-          path:         '',
-          shallow_path: '',
-          constraints:  {},
-          defaults:     {},
-          options:      {},
-          parent:       nil
-        )
+          # clear scope so controller routes aren't namespaced
+          @scope = ActionDispatch::Routing::Mapper::Scope.new(
+            path:         '',
+            shallow_path: '',
+            constraints:  {},
+            defaults:     {},
+            options:      {},
+            parent:       nil
+          )
 
-        devise_scope resource.underscore.gsub('/', '_').to_sym do
-          # path to verify token validity
-          get "#{full_path}/validate_token", controller: token_validations_ctrl, action: 'validate_token', defaults: {format: :json}
-          post "#{full_path}/login_as", controller: sessions_ctrl, action: 'login_as', defaults: {format: :json}
+          devise_scope resource.underscore.gsub('/', '_').to_sym do
+            # path to verify token validity
+            get "#{full_path}/validate_token", controller: token_validations_ctrl, action: 'validate_token', defaults: {format: :json}
+            post "#{full_path}/login_as", controller: sessions_ctrl, action: 'login_as', defaults: {format: :json}
 
-          # omniauth routes. only define if omniauth is installed and not skipped.
-          if defined?(::OmniAuth) and not opts[:skip].include?(:omniauth_callbacks)
-            match "#{full_path}/failure",             controller: omniauth_ctrl, action: 'omniauth_failure', via: [:get]
-            match "#{full_path}/:provider/callback",  controller: omniauth_ctrl, action: 'omniauth_success', via: [:get]
+            # omniauth routes. only define if omniauth is installed and not skipped.
+            if defined?(::OmniAuth) and not opts[:skip].include?(:omniauth_callbacks)
+              match "#{full_path}/failure",             controller: omniauth_ctrl, action: 'omniauth_failure', via: [:get]
+              match "#{full_path}/:provider/callback",  controller: omniauth_ctrl, action: 'omniauth_success', via: [:get]
 
-            match "#{DeviseTokenAuth.omniauth_prefix}/:provider/callback", controller: omniauth_ctrl, action: 'redirect_callbacks', via: [:get]
-            match "#{DeviseTokenAuth.omniauth_prefix}/failure", controller: omniauth_ctrl, action: 'omniauth_failure', via: [:get]
+              match "#{DeviseTokenAuth.omniauth_prefix}/:provider/callback", controller: omniauth_ctrl, action: 'redirect_callbacks', via: [:get]
+              match "#{DeviseTokenAuth.omniauth_prefix}/failure", controller: omniauth_ctrl, action: 'omniauth_failure', via: [:get]
 
-            # preserve the resource class thru oauth authentication by setting name of
-            # resource as "resource_class" param
-            match "#{full_path}/:provider", to: redirect{|params, request|
-              # get the current querystring
-              qs = CGI::parse(request.env['QUERY_STRING'])
+              # preserve the resource class thru oauth authentication by setting name of
+              # resource as "resource_class" param
+              match "#{full_path}/:provider", to: redirect{|params, request|
+                # get the current querystring
+                qs = CGI::parse(request.env['QUERY_STRING'])
 
-              # append name of current resource
-              qs['resource_class'] = [resource]
+                # append name of current resource
+                qs['resource_class'] = [resource]
 
-              set_omniauth_path_prefix!(DeviseTokenAuth.omniauth_prefix)
+                set_omniauth_path_prefix!(DeviseTokenAuth.omniauth_prefix)
 
-              # re-construct the path for omniauth
-              "#{::OmniAuth.config.path_prefix}/#{params[:provider]}?#{{}.tap {|hash| qs.each{|k, v| hash[k] = v.first}}.to_param}"
-            }, via: [:get]
+                # re-construct the path for omniauth
+                "#{::OmniAuth.config.path_prefix}/#{params[:provider]}?#{{}.tap {|hash| qs.each{|k, v| hash[k] = v.first}}.to_param}"
+              }, via: [:get]
+            end
           end
         end
       end
