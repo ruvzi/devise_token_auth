@@ -39,7 +39,7 @@ module DeviseTokenAuth
           config:                       params[:config]
         }))
       else
-        raise ActionController::RoutingError.new('Not Found')
+        redirect_to root_url, error: 'Not Found'
       end
     end
   end

@@ -173,7 +173,7 @@ module DeviseTokenAuth
     end
 
     def render_edit_error
-      raise ActionController::RoutingError.new('Not Found')
+      redirect_to root_url, error: 'Not Found'
     end
 
     def render_update_error_unauthorized
