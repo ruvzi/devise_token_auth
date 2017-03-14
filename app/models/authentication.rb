@@ -115,7 +115,9 @@ class Authentication < ActiveRecord::Base
     args[:uid]    = self.uid
     args[:expiry] = self.tokens[args[:client_id]]['expiry'] || self.tokens[args[:client_id]][:expiry]
 
-    DeviseTokenAuth::Url.generate(base_url, args)
+    url = DeviseTokenAuth::Url.generate(base_url, args)
+    url.gsub!('https', 'http') if URI(url).scheme.eql?('https') && (subdomain = ActionDispatch::Http::URL.extract_subdomain(URI(url).host, 1)).present? && !subdomain.eql?('www')
+    url
   end
 
 
