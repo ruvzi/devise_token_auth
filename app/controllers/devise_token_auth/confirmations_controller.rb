@@ -39,7 +39,7 @@ module DeviseTokenAuth
           config:                       params[:config]
         }))
       else
-        redirect_to root_url, error: 'Not Found'
+        redirect_to root_url, alert: 'Not Found'
       end
     end
   end

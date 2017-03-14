@@ -173,7 +173,7 @@ module DeviseTokenAuth
     end
 
     def render_edit_error
-      redirect_to root_url, error: 'Not Found'
+      redirect_to root_url, alert: 'Not Found'
     end
 
     def render_update_error_unauthorized
