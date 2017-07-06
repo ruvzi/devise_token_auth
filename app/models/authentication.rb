@@ -41,16 +41,9 @@ class Authentication < ActiveRecord::Base
     expiry     = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
     token_hash = self.tokens[client_id]['token'] || self.tokens[client_id][:token]
 
-    true if (
-        # ensure that expiry and token are set
-    expiry and token and
-
-        # ensure that the token has not yet expired
-        DateTime.strptime(expiry.to_s, '%s') > Time.now and
-
-        # ensure that the token is valid
-        DeviseTokenAuth::Concerns::User.tokens_match?(token_hash, token)
-    )
+    expiry && token &&
+      DateTime.strptime(expiry.to_s, '%s') > Time.now &&
+      DeviseTokenAuth::Concerns::User.tokens_match?(token_hash, token)
   end
 
   # allow batch requests to use the previous token
@@ -59,21 +52,13 @@ class Authentication < ActiveRecord::Base
     updated_at = self.tokens[client_id]['updated_at'] || self.tokens[client_id][:updated_at]
     last_token = self.tokens[client_id]['last_token'] || self.tokens[client_id][:last_token]
 
-
-    true if (
-        # ensure that the last token and its creation time exist
-    updated_at and last_token and
-
-        # ensure that previous token falls within the batch buffer throttle time of the last request
-        Time.parse(updated_at) > Time.now - DeviseTokenAuth.batch_request_buffer_throttle and
-
-        # ensure that the token is valid
-        ::BCrypt::Password.new(last_token) == token
-    )
+    updated_at && last_token &&
+      Time.parse(updated_at) > Time.now - DeviseTokenAuth.batch_request_buffer_throttle &&
+      ::BCrypt::Password.new(last_token) == token
   end
 
   # update user's auth token (should happen on each request)
-  def create_new_auth_token(client_id=nil)
+  def create_new_auth_token(client_id = nil)
     client_id  ||= SecureRandom.urlsafe_base64(nil, false)
     last_token ||= nil
     token        = SecureRandom.urlsafe_base64(nil, false)
