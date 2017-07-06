@@ -1,4 +1,4 @@
-class OmniauthCallbackJob < Struct.new(:resource_class, :record_id, :authentication_id)
+class OmniauthCallbackJob < Struct.new(:record_class, :record_id, :authentication_id)
   def perform
     begin
       record = record_class.find(record_id)
