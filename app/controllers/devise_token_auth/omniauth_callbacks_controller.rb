@@ -248,7 +248,7 @@ module DeviseTokenAuth
       OauthLogger.debug "Login as: #{auth_hash['provider']}"
       OauthLogger.debug auth_hash
       OauthLogger.debug @authentication.inspect
-      OauthLogger.debug "token before: #{@authentication.data.credentials.token}"
+      OauthLogger.debug "token before: #{@authentication.data.credentials.token}" if @authentication.data.present?
 
       @authentication.data = auth_hash
       @authentication.save
