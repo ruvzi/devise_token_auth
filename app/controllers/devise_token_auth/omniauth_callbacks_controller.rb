@@ -243,8 +243,17 @@ module DeviseTokenAuth
       @authentication ||= @resource.authentications.find_or_initialize_by(provider: provider, uid: auth_hash['uid'])
 
       @authentication.user ||= @resource
+
+      OauthLogger.debug 'Authentication start'
+      OauthLogger.debug "Login as: #{auth_hash['provider']}"
+      OauthLogger.debug auth_hash
+      OauthLogger.debug @authentication.inspect
+      OauthLogger.debug "token before: #{@authentication.data.credentials.token}"
+
       @authentication.data = auth_hash
       @authentication.save
+      OauthLogger.debug "@authentication: #{@authentication.errors}"
+      OauthLogger.debug "token after: #{@authentication.data.credentials.token}"
 
 
       # sync user info with provider, update/generate auth token
