@@ -75,7 +75,7 @@ module ActionDispatch::Routing
 
                 # re-construct the path for omniauth
                 "#{::OmniAuth.config.path_prefix}/#{params[:provider]}?#{{}.tap {|hash| qs.each{|k, v| hash[k] = v.first}}.to_param}"
-              }, via: [:get]
+              }, via: [:get], as: :omniauth_authorize
             end
           end
         end
