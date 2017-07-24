@@ -113,6 +113,10 @@ class Authentication < ActiveRecord::Base
     build_auth_header(token, client_id)
   end
 
+  def token
+    data.credentials.token if data.present?
+  end
+
   protected
 
   def set_empty_token_hash
