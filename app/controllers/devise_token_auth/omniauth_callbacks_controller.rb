@@ -252,7 +252,7 @@ module DeviseTokenAuth
 
       @authentication.data = auth_hash
       @authentication.save
-      OauthLogger.debug "@authentication: #{@authentication.errors}"
+      OauthLogger.debug "@authentication errors: #{@authentication.errors.full_messages}"
       OauthLogger.debug "token after: #{@authentication.data.credentials.token}"
 
 
