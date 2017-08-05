@@ -224,15 +224,16 @@ module DeviseTokenAuth
       # find or create user by provider and provider uid
       @resource = current_user
       provider = auth_hash['provider']
+      uid = auth_hash['uid']
       if @resource.blank?
         if (auth_email = auth_hash.recursive_find_by_key('email').presence.try(:downcase)).present?
           @resource = resource_class.find_by(email: auth_email)
         end
-        @resource ||= if (@authentication = Authentication.where(provider: provider, uid: auth_hash['uid']).first).present? && @authentication.user.present?
+        @resource ||= if (@authentication = Authentication.provider(provider).uid(uid).first).present? && @authentication.user.present?
                         @authentication.user
                       else
-                        email = auth_email || "#{auth_hash['uid']}.#{provider}@example.com"
-                        resource_class.find_or_initialize_by(email: email, )
+                        email = auth_email || "#{uid}.#{provider}@example.com"
+                        resource_class.find_or_initialize_by(email: email)
                       end
         if @resource.new_record?
           @oauth_registration = true
@@ -240,7 +241,7 @@ module DeviseTokenAuth
           @resource.save
         end
       end
-      @authentication ||= @resource.authentications.find_or_initialize_by(provider: provider, uid: auth_hash['uid'])
+      @authentication ||= @resource.authentications.find_or_initialize_by(provider: provider, uid: uid)
 
       @authentication.user ||= @resource
 
