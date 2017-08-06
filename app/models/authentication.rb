@@ -84,6 +84,8 @@ class Authentication < ActiveRecord::Base
   def build_auth_header(token, client_id='default')
     # client may use expiry to prevent validation request if expired
     # must be cast as string or headers will break
+    self.tokens ||= {}
+    self.tokens[client_id] ||= {}
     expiry = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
 
     {
