@@ -1,5 +1,7 @@
 require 'bcrypt'
 class Authentication < ActiveRecord::Base
+  include DeviseTokenAuth::Concerns::Strategy
+
   belongs_to :user
   acts_as_paranoid
 
@@ -115,28 +117,23 @@ class Authentication < ActiveRecord::Base
     build_auth_header(token, client_id)
   end
 
-  def token
-    super || data.credentials.token if data.present?
-  end
-
   protected
 
   def set_empty_token_hash
-    self.tokens ||= {} if has_attribute?(:tokens)
+    return unless has_attribute?(:tokens)
+    self.tokens ||= {}
   end
 
   def sync_uid
-    if (new_uid = self.user.try(:email))
-      self.uid = new_uid if provider.eql?('email')
-    end
+    return unless (new_uid = self.user.try(:email)).present? && provider.eql?('email')
+    self.uid = new_uid
   end
 
   def destroy_expired_tokens
-    if self.tokens
-      self.tokens.delete_if do |cid, v|
-        expiry = v[:expiry] || v['expiry']
-        DateTime.strptime(expiry.to_s, '%s') < Time.now
-      end
+    return unless self.tokens.present?
+    self.tokens.delete_if do |cid, v|
+      expiry = v[:expiry] || v['expiry']
+      DateTime.strptime(expiry.to_s, '%s') < Time.now
     end
   end
 end
