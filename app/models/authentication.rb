@@ -116,7 +116,7 @@ class Authentication < ActiveRecord::Base
   end
 
   def token
-    data.credentials.token if data.present?
+    super || data.credentials.token if data.present?
   end
 
   protected
