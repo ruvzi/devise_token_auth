@@ -31,7 +31,7 @@ module DeviseTokenAuth::Concerns::Strategy
 
   def facebook_client_api
     app_graph = Koala::Facebook::API.new(ENV['auth_facebook_access_token'])
-    Koala::Facebook::API.new(token) if app_graph.debug_token(authentication.token)['data']['is_valid']
+    Koala::Facebook::API.new(token) if app_graph.debug_token(self.token)['data']['is_valid']
     # add long live token if issued_at nil
   end
 
