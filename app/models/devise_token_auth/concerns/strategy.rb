@@ -3,7 +3,7 @@ module DeviseTokenAuth::Concerns::Strategy
 
   included do
     before_save :current_token_reload, if: :data_changed?
-    # before_save :long_token_load!, if: :token_changed?
+    # before_save :long_token_load!, if: :token_changed? # TODO: add after use not long-live token
 
     attr_writer :provider_api
   end
@@ -22,13 +22,17 @@ module DeviseTokenAuth::Concerns::Strategy
   end
 
   def init_provider_api
-    long_token_load!
     case provider
-      when 'facebook'
-        Koala::Facebook::API.new(token)
-      when 'vkontakte' then load_vkontakte_long_token!
-      else return true
+      when 'facebook' then facebook_client_api
+      when 'vkontakte' then nil
+      else return nil
     end
+  end
+
+  def facebook_client_api
+    app_graph = Koala::Facebook::API.new(ENV['auth_facebook_access_token'])
+    Koala::Facebook::API.new(token) if app_graph.debug_token(authentication.token)['data']['is_valid']
+    # add long live token if issued_at nil
   end
 
   def long_token_load!
@@ -40,8 +44,17 @@ module DeviseTokenAuth::Concerns::Strategy
   end
 
   def load_facebook_long_token!
-    oauth = Koala::Facebook::OAuth.new(ENV['auth_facebook_key'],  ENV['auth_facebook_secret'])
-    oauth.exchange_access_token_info token
+    oauth = Koala::Facebook::OAuth.new(ENV['auth_facebook_key'],ENV['auth_facebook_secret'])
+    begin
+      new_access_info = oauth.exchange_access_token_info(token)
+      new_access_token = new_access_info['access_token']
+      new_access_expires_at = DateTime.now + new_access_info['expires_in'].to_i.seconds
+
+      self.token = new_access_token
+      self.expiry = data.credentials.expires_at
+      self.expires_at = new_access_expires_at
+    rescue
+    end
   end
 
   def load_vkontakte_long_token!
