@@ -24,7 +24,7 @@ module DeviseTokenAuth::Concerns::Strategy
   def init_provider_api
     case provider
       when 'facebook' then facebook_client_api
-      when 'vkontakte' then nil
+      when 'vkontakte' then vkontakte_client_api
       else return nil
     end
   end
@@ -33,6 +33,10 @@ module DeviseTokenAuth::Concerns::Strategy
     app_graph = Koala::Facebook::API.new(ENV['auth_facebook_access_token'])
     Koala::Facebook::API.new(token) if app_graph.debug_token(self.token)['data']['is_valid']
     # add long live token if issued_at nil
+  end
+
+  def vkontakte_client_api
+    VkontakteApi::Client.new(ENV['auth_vkontakte_access_token'])
   end
 
   def long_token_load!
