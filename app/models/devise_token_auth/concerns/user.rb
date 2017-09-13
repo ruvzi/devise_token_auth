@@ -81,6 +81,10 @@ module DeviseTokenAuth::Concerns::User
     authentications.count.zero?
   end
 
+  def extra_response
+    {}
+  end
+
   protected
   def authentication_email
     self.authentication.update(uid: self.email)

@@ -106,12 +106,14 @@ class AuthenticationDecorator < Draper::Decorator
   end
 
   def user_response
-    {
-        id: object.id,
-        user_id: object.user_id,
-        uid: object.uid,
-        provider: object.provider
+    response = {
+      id: object.id,
+      user_id: object.user_id,
+      uid: object.uid,
+      provider: object.provider
     }
+    response.merge!(object.user.decorate.extra_response)
+    response
   end
 
   protected
