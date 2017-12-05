@@ -1,8 +1,8 @@
 include MigrationDatabaseHelper
 
-class DeviseTokenAuthCreateUnregisterableUsers < ActiveRecord::Migration[4.2]
+class DeviseTokenAuthCreateScopedUsers < ActiveRecord::Migration[4.2]
   def change
-    create_table(:unregisterable_users) do |t|
+    create_table(:scoped_users) do |t|
       ## Required
       t.string :provider, :null => false
       t.string :uid, :null => false, :default => ""
@@ -52,10 +52,10 @@ class DeviseTokenAuthCreateUnregisterableUsers < ActiveRecord::Migration[4.2]
       t.timestamps
     end
 
-    add_index :unregisterable_users, :email
-    add_index :unregisterable_users, [:uid, :provider],     :unique => true
-    add_index :unregisterable_users, :reset_password_token, :unique => true
-    # add_index :unregisterable_users, :confirmation_token,   :unique => true
-    # add_index :unregisterable_users, :unlock_token,         :unique => true
+    add_index :scoped_users, :email
+    add_index :scoped_users, [:uid, :provider],     :unique => true
+    add_index :scoped_users, :reset_password_token, :unique => true
+    # add_index :scoped_users, :confirmation_token,   :unique => true
+    # add_index :scoped_users, :unlock_token,         :unique => true
   end
 end

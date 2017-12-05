@@ -1,10 +1,8 @@
-include MigrationDatabaseHelper
-
-class DeviseTokenAuthCreateUnregisterableUsers < ActiveRecord::Migration[4.2]
+class DeviseTokenAuthCreate<%= user_class.pluralize %> < ActiveRecord::Migration<%= "[#{Rails::VERSION::STRING[0..2]}]" if Rails::VERSION::MAJOR > 4 %>
   def change
-    create_table(:unregisterable_users) do |t|
+    create_table(:<%= user_class.pluralize.underscore %>) do |t|
       ## Required
-      t.string :provider, :null => false
+      t.string :provider, :null => false, :default => "email"
       t.string :uid, :null => false, :default => ""
 
       ## Database authenticatable
@@ -43,19 +41,15 @@ class DeviseTokenAuthCreateUnregisterableUsers < ActiveRecord::Migration[4.2]
       t.string :email
 
       ## Tokens
-      if json_supported_database?
-        t.json :tokens
-      else
-        t.text :tokens
-      end
+      <%= json_supported_database? ? 't.json :tokens' : 't.text :tokens' %>
 
       t.timestamps
     end
 
-    add_index :unregisterable_users, :email
-    add_index :unregisterable_users, [:uid, :provider],     :unique => true
-    add_index :unregisterable_users, :reset_password_token, :unique => true
-    # add_index :unregisterable_users, :confirmation_token,   :unique => true
-    # add_index :unregisterable_users, :unlock_token,         :unique => true
+    add_index :<%= user_class.pluralize.underscore %>, :email,                unique: true
+    add_index :<%= user_class.pluralize.underscore %>, [:uid, :provider],     unique: true
+    add_index :<%= user_class.pluralize.underscore %>, :reset_password_token, unique: true
+    add_index :<%= user_class.pluralize.underscore %>, :confirmation_token,   unique: true
+    # add_index :<%= user_class.pluralize.underscore %>, :unlock_token,       unique: true
   end
 end

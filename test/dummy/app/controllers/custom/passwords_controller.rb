@@ -2,19 +2,19 @@ class Custom::PasswordsController < DeviseTokenAuth::PasswordsController
 
   def create
     super do |resource|
-      @create_block_called = true
+      @create_block_called = true unless resource.nil?
     end
   end
 
   def edit
     super do |resource|
-      @edit_block_called = true
+      @edit_block_called = true unless resource.nil?
     end
   end
 
   def update
     super do |resource|
-      @update_block_called = true
+      @update_block_called = true unless resource.nil?
     end
   end
 
@@ -30,6 +30,11 @@ class Custom::PasswordsController < DeviseTokenAuth::PasswordsController
     @update_block_called == true
   end
 
+  protected
+
+  def render_update_success
+    render json: {custom: "foo"}
+  end
 
 
 end

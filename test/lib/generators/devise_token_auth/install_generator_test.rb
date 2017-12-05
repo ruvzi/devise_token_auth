@@ -28,6 +28,14 @@ module DeviseTokenAuth
         assert_migration 'db/migrate/devise_token_auth_create_users.rb'
       end
 
+      test 'migration file contains rails version' do
+        if Rails::VERSION::MAJOR >= 5
+          assert_migration 'db/migrate/devise_token_auth_create_users.rb', /#{Rails::VERSION::MAJOR}.#{Rails::VERSION::MINOR}/
+        else
+          assert_migration 'db/migrate/devise_token_auth_create_users.rb'
+        end
+      end
+
       test 'subsequent runs raise no errors' do
         run_generator
       end
@@ -44,14 +52,17 @@ module DeviseTokenAuth
         # make dir if not exists
         FileUtils.mkdir_p(@dir)
 
+        # account for rails version 5
+        active_record_needle = (Rails::VERSION::MAJOR == 5) ? 'ApplicationRecord' : 'ActiveRecord::Base'
+
         @f = File.open(@fname, 'w') {|f|
           f.write <<-RUBY
-class User < ActiveRecord::Base
+            class User < #{active_record_needle}
 
-  def whatever
-    puts 'whatever'
-  end
-end
+              def whatever
+                puts 'whatever'
+              end
+            end
           RUBY
         }
 
@@ -87,9 +98,9 @@ end
 
         @f = File.open(@fname, 'w') {|f|
           f.write <<-RUBY
-Rails.application.routes.draw do
-  patch '/chong', to: 'bong#index'
-end
+            Rails.application.routes.draw do
+              patch '/chong', to: 'bong#index'
+            end
           RUBY
         }
 
@@ -147,11 +158,11 @@ end
 
         @f = File.open(@fname, 'w') {|f|
           f.write <<-RUBY
-class ApplicationController < ActionController::Base
-  def whatever
-    'whatever'
-  end
-end
+            class ApplicationController < ActionController::Base
+              def whatever
+                'whatever'
+              end
+            end
           RUBY
         }
 

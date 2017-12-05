@@ -1,5 +1,7 @@
-class OmniauthCallbackJob < Struct.new(:record_class, :record_id, :authentication_id)
-  def perform
+class OmniauthCallbackJob < ApplicationJob
+  queue_as :default
+
+  def perform(record_class, record_id, authentication_id)
     begin
       record = record_class.find(record_id)
 

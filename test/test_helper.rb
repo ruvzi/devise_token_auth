@@ -1,32 +1,36 @@
-require "codeclimate-test-reporter"
-#require 'simplecov'
+require 'simplecov'
 
-#SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
-  #SimpleCov::Formatter::HTMLFormatter,
-  #CodeClimate::TestReporter::Formatter
-#]
+# SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
+#   SimpleCov::Formatter::HTMLFormatter,
+#   CodeClimate::TestReporter::Formatter
+# ]
 
-#SimpleCov.start 'rails'
-CodeClimate::TestReporter.start
+SimpleCov.start 'rails'
 
-ENV["RAILS_ENV"] = "test"
+ENV['RAILS_ENV'] = 'test'
 
-require File.expand_path("../dummy/config/environment", __FILE__)
-require "rails/test_help"
-require "minitest/rails"
+require File.expand_path('../dummy/config/environment', __FILE__)
+require 'rails/test_help'
+require 'minitest/rails'
 
 # To add Capybara feature tests add `gem "minitest-rails-capybara"`
 # to the test group in the Gemfile and uncomment the following:
 # require "minitest/rails/capybara"
 
 # Uncomment for awesome colorful output
-require "minitest/pride"
+# require "minitest/pride"
 
-ActiveSupport::TestCase.fixture_path = File.expand_path("../fixtures", __FILE__)
-ActionDispatch::IntegrationTest.fixture_path = File.expand_path("../fixtures", __FILE__)
+ActiveSupport::TestCase.fixture_path = File.expand_path('../fixtures', __FILE__)
+ActionDispatch::IntegrationTest.fixture_path = File.expand_path('../fixtures', __FILE__)
 
 # I hate the default reporter. Use ProgressReporter instead.
 Minitest::Reporters.use! Minitest::Reporters::ProgressReporter.new
+
+class ActionDispatch::IntegrationTest
+  def follow_all_redirects!
+    follow_redirect! while response.status.to_s =~ /^3\d{2}/
+  end
+end
 
 class ActiveSupport::TestCase
   ActiveRecord::Migration.check_pending!
@@ -40,18 +44,22 @@ class ActiveSupport::TestCase
   # Add more helper methods to be used by all tests here...
 
   def age_token(user, client_id)
-    user.tokens[client_id]['updated_at'] = Time.now - (DeviseTokenAuth.batch_request_buffer_throttle + 10.seconds)
-    user.save!
+    if user.tokens[client_id]
+      user.tokens[client_id]['updated_at'] = Time.now - (DeviseTokenAuth.batch_request_buffer_throttle + 10.seconds)
+      user.save!
+    end
   end
 
   def expire_token(user, client_id)
-    user.tokens[client_id]['expiry'] = (Time.now - (DeviseTokenAuth.token_lifespan.to_f + 10.seconds)).to_i
-    user.save!
+    if user.tokens[client_id]
+      user.tokens[client_id]['expiry'] = (Time.now - (DeviseTokenAuth.token_lifespan.to_f + 10.seconds)).to_i
+      user.save!
+    end
   end
 end
 
 class ActionController::TestCase
-  include Devise::TestHelpers
+  include Devise::Test::ControllerHelpers
 
   setup do
     @routes = Dummy::Application.routes

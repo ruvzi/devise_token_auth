@@ -1,5 +1,5 @@
 require 'bcrypt'
-class Authentication < ActiveRecord::Base
+class Authentication < ApplicationRecord
   include DeviseTokenAuth::Concerns::Strategy
 
   belongs_to :user
