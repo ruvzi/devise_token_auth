@@ -15,17 +15,17 @@ gemspec
 
 group :development, :test do
   gem 'thor'
-  gem "figaro"
+  gem 'figaro'
   gem 'omniauth-github'
   gem 'omniauth-facebook'
   gem 'omniauth-google-oauth2'
-  gem 'rack-cors',              :require => 'rack/cors'
+  gem 'rack-cors',              require: 'rack/cors'
   gem 'attr_encrypted'
 
   # testing
   #gem 'spring'
-  gem "pry"
-  gem "pry-remote"
+  gem 'pry'
+  gem 'pry-remote'
   gem 'minitest'
   gem 'minitest-rails'
   gem 'minitest-focus'
@@ -39,5 +39,5 @@ end
 
 # code coverage, metrics
 group :test do
-  gem "codeclimate-test-reporter", require: nil
+  gem 'codeclimate-test-reporter', require: nil
 end
