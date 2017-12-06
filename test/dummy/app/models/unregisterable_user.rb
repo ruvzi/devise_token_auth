@@ -1,4 +1,4 @@
-class UnregisterableUser < ActiveRecord::Base
+class UnregisterableUser < ApplicationRecord
   # Include default devise modules.
   devise :database_authenticatable,
           :recoverable, :trackable, :validatable,

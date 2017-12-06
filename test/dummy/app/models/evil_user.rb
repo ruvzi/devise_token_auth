@@ -1,3 +1,3 @@
-class EvilUser < ActiveRecord::Base
+class EvilUser < ApplicationRecord
   include DeviseTokenAuth::Concerns::User
 end

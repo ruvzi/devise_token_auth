@@ -29,7 +29,7 @@ module DeviseTokenAuth
       q = "authentications.uid = ? AND authentications.provider='email'"
 
       # fix for mysql default case insensitivity
-      if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
+      if ApplicationRecord.connection.adapter_name.downcase.starts_with? 'mysql'
         q = 'BINARY' + q
       end
 

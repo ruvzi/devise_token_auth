@@ -53,7 +53,7 @@ module DeviseTokenAuth
         FileUtils.mkdir_p(@dir)
 
         # account for rails version 5
-        active_record_needle = (Rails::VERSION::MAJOR == 5) ? 'ApplicationRecord' : 'ActiveRecord::Base'
+        active_record_needle = (Rails::VERSION::MAJOR == 5) ? 'ApplicationRecord' : 'ApplicationRecord'
 
         @f = File.open(@fname, 'w') {|f|
           f.write <<-RUBY

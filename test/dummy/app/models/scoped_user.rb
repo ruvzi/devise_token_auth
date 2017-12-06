@@ -1,4 +1,4 @@
-class ScopedUser < ActiveRecord::Base
+class ScopedUser < ApplicationRecord
   # Include default devise modules.
   devise :database_authenticatable, :registerable,
           :recoverable, :rememberable, :trackable, :validatable,

@@ -20,10 +20,10 @@ module MigrationDatabaseHelper
   end
 
   def database_name
-    ActiveRecord::Base.connection.class.name
+    ApplicationRecord.connection.class.name
   end
 
   def database_version
-    ActiveRecord::Base.connection.select_value('SELECT VERSION()')
+    ApplicationRecord.connection.select_value('SELECT VERSION()')
   end
 end

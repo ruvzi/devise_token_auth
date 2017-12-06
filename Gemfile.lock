@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    devise_token_auth (0.3.4)
+    devise_token_auth (0.1.43.beta1)
       apipie-rails (~> 0.5.5)
       delayed_job_active_record (~> 4.1.2)
       devise (~> 4.3.0)

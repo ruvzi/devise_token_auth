@@ -1,4 +1,4 @@
-class User < ActiveRecord::Base
+class User < ApplicationRecord
   include DeviseTokenAuth::Concerns::User
 
   validates :operating_thetan, numericality: true, allow_nil: true
