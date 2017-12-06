@@ -111,6 +111,7 @@ module DeviseTokenAuth
       #
       def self.define_helpers(mapping) #:nodoc:
         mapping = mapping.name
+        binding.pry
         
         class_eval <<-METHODS, __FILE__, __LINE__ + 1
           def authenticate_#{mapping}!(opts={})

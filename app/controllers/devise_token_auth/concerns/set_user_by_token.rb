@@ -23,22 +23,29 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     # no default user defined
     return unless rc
 
+    # gets the headers names, which was set in the initialize file
+    uid_name = DeviseTokenAuth.headers_names[:'uid']
+    access_token_name = DeviseTokenAuth.headers_names[:'access-token']
+    client_name = DeviseTokenAuth.headers_names[:'client']
+
     # parse header for values necessary for authentication
-    uid        = request.headers['uid'] || params['uid']
-    @token     = request.headers['access-token'] || params['access-token']
-    @client_id = request.headers['client'] || params['client']
+    uid        = request.headers[uid_name] || params[uid_name]
+    @token     ||= request.headers[access_token_name] || params[access_token_name]
+    @client_id ||= request.headers[client_name] || params[client_name]
 
     # client_id isn't required, set to 'default' if absent
     @client_id ||= 'default'
 
     # check for an existing user, authenticated via warden/devise
-    devise_warden_user =  request.env['warden'] && warden.user(rc.to_s.underscore.to_sym)
-
-    if devise_warden_user && devise_warden_user.tokens[@client_id].nil?
-      @used_auth_by_token = false
-      @resource = devise_warden_user
-      @authentication = uid && @resource.authentications.uid(uid).first || @resource.authentications.first
-      @authentication.create_new_auth_token
+    if DeviseTokenAuth.enable_standard_devise_support
+      devise_warden_user = warden.user(rc.to_s.underscore.to_sym)
+  
+      if devise_warden_user && devise_warden_user.tokens[@client_id].nil?
+        @used_auth_by_token = false
+        @resource = devise_warden_user
+        @authentication = uid && @resource.authentications.uid(uid).first || @resource.authentications.first
+        @authentication.create_new_auth_token
+      end
     end
 
     # user has already been found and authenticated
@@ -77,7 +84,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     @client_id = nil unless @used_auth_by_token
 
     if @used_auth_by_token && !DeviseTokenAuth.change_headers_on_each_request
-
+      return if @resource.reload.tokens[@client_id].nil?
       auth_header = @authentication.build_auth_header(@token, @client_id)
       # update the response header
       response.headers.merge!(auth_header)
@@ -86,14 +93,29 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       # Lock the user record during any auth_header updates to ensure
       # we don't have write contention from multiple threads
       @resource.with_lock do
+  
+        return if @used_auth_by_token && @resource.tokens[@client_id].nil?
 
         # determine batch request status after request processing, in case
         # another processes has updated it during that processing
         @is_batch_request = is_batch_request?(@resource, @client_id)
-
         # extend expiration of batch buffer to account for the duration of
         # this request
-        auth_header =  @is_batch_request ? @authentication.extend_batch_buffer(@token, @client_id) : @authentication.create_new_auth_token(@client_id)
+        if @is_batch_request
+          auth_header = @authentication.extend_batch_buffer(@token, @client_id)
+  
+          # Do not return token for batch requests to avoid invalidated
+          # tokens returned to the client in case of race conditions.
+          # Use a blank string for the header to still be present and
+          # being passed in a XHR response in case of
+          # 304 Not Modified responses.
+          auth_header[DeviseTokenAuth.headers_names[:"access-token"]] = ' '
+          auth_header[DeviseTokenAuth.headers_names[:"expiry"]] = ' '
+  
+          # update Authorization response header with new token
+        else
+          auth_header = @authentication.create_new_auth_token(@client_id)
+        end
         # update the response header
         response.headers.merge!(auth_header)
 
