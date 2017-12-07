@@ -77,6 +77,7 @@ class Authentication < ApplicationRecord
         last_token: last_token,
         updated_at: Time.now
     }
+    update_auth_header(token, client_id)
 
     self.save!
 
@@ -99,6 +100,18 @@ class Authentication < ApplicationRecord
     }
   end
 
+  def update_auth_header(token, client_id='default')
+    headers = build_auth_header(token, client_id)
+    max_clients = DeviseTokenAuth.max_number_of_devices
+    while self.tokens.keys.length > 0 && max_clients < self.tokens.keys.length
+      oldest_token = self.tokens.min_by { |cid, v| v[:expiry] || v["expiry"] }
+      self.tokens.delete(oldest_token.first)
+    end
+  
+    self.save!
+  
+    headers
+  end
 
   def build_auth_url(base_url, args)
     args[:uid]    = self.uid

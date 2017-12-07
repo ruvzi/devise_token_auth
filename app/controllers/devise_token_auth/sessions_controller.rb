@@ -8,9 +8,9 @@ module DeviseTokenAuth
       render_new_error
     end
 
-    api! 'sessions.create.title'
-    param :email, String, desc: 'sessions.create.params.email', required: true
-    param :password, String, desc: 'sessions.create.params.password', required: true
+    #api! 'sessions.create.title'
+    #param :email, String, desc: 'sessions.create.params.email', required: true
+    #param :password, String, desc: 'sessions.create.params.password', required: true
     def create
       # Check
       field = (resource_params.keys.map(&:to_sym) & resource_class.authentication_keys).first
@@ -60,7 +60,7 @@ module DeviseTokenAuth
       end
     end
 
-    api!
+    #api!
     def destroy
       # remove auth instance variables so that after_action does not run
       user = remove_instance_variable(:@resource) if @resource

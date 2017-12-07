@@ -1,6 +1,11 @@
+def rake_task_db?
+  defined?(Rake) && Rake.application.top_level_tasks.any? { |task| task.include?('db:') }
+end
+
 module ActionDispatch::Routing
   class Mapper
     def mount_devise_token_auth_for(resource, opts)
+      return if rake_task_db?
       # ensure objects exist to simplify attr checks
       opts[:controllers] ||= {}
       opts[:skip]        ||= []

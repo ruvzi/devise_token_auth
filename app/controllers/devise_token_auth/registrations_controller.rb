@@ -5,10 +5,10 @@ module DeviseTokenAuth
     before_action :validate_account_update_params, :only => :update
     skip_after_action :update_auth_header, :only => [:create, :destroy]
 
-    api! 'registrations.create.title'
-    param :email, String, desc: 'registrations.create.params.email', required: true
-    param :password, String, desc: 'registrations.create.params.password', required: true
-    param :recaptcha, String, desc: 'registrations.create.params.recaptcha', required: true
+    #api! 'registrations.create.title'
+    #param :email, String, desc: 'registrations.create.params.email', required: true
+    #param :password, String, desc: 'registrations.create.params.password', required: true
+    #param :recaptcha, String, desc: 'registrations.create.params.recaptcha', required: true
     def create
       @resource            = resource_class.new(sign_up_params)
 
