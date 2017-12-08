@@ -2,7 +2,7 @@ module DeviseTokenAuth::Concerns::Strategy
   extend ActiveSupport::Concern
 
   included do
-    before_save :current_token_reload, if: :data_changed?
+    before_save :current_token_reload, if: :will_save_change_to_data?
     # before_save :long_token_load!, if: :token_changed? # TODO: add after use not long-live token
 
     attr_writer :provider_api
