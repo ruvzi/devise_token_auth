@@ -2,7 +2,6 @@ PATH
   remote: .
   specs:
     devise_token_auth (0.1.43.beta1)
-      apipie-rails (~> 0.5.5)
       delayed_job_active_record (~> 4.1.2)
       devise (~> 4.3.0)
       draper (~> 3.0.1)
@@ -54,8 +53,6 @@ GEM
       minitest (~> 5.1)
       tzinfo (~> 1.1)
     ansi (1.5.0)
-    apipie-rails (0.5.5)
-      rails (>= 4.1)
     arel (8.0.0)
     attr_encrypted (3.0.3)
       encryptor (~> 3.0.0)
