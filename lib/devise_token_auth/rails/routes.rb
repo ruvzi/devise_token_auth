@@ -1,5 +1,5 @@
-def rake_task_db?
-  defined?(Rake) && Rake.application.top_level_tasks.any? { |task| task.include?('db:') }
+def rake_task_db_or_assets?
+  defined?(Rake) && Rake.application.top_level_tasks.any? { |task| task.include?('db:') || task.include?('assets:') }
 end
 
 module ActionDispatch::Routing
@@ -27,7 +27,7 @@ module ActionDispatch::Routing
       # remove any unwanted devise modules
       opts[:skip].each{|item| controllers.delete(item)}
 
-      unless rake_task_db?
+      unless rake_task_db_or_assets?
         devise_for resource.pluralize.underscore.gsub('/', '_').to_sym,
           class_name:   resource,
           module:       :devise,
