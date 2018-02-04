@@ -1,31 +1,20 @@
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
-# Declare your gem's dependencies in devise_token_auth.gemspec.
-# Bundler will treat runtime dependencies like base dependencies, and
-# development dependencies will be added by default to the :development group.
 gemspec
-
-# Declare any dependencies that are still in development here instead of in
-# your gemspec. These might include edge Rails or gems from your path or
-# Git. Remember to move these dependencies to your gemspec before releasing
-# your gem to rubygems.org.
-
-# To use debugger
-# gem 'debugger'
 
 group :development, :test do
   gem 'thor'
-  gem "figaro"
+  gem 'figaro'
   gem 'omniauth-github'
   gem 'omniauth-facebook'
   gem 'omniauth-google-oauth2'
-  gem 'rack-cors',              :require => 'rack/cors'
+  gem 'rack-cors',              require: 'rack/cors'
   gem 'attr_encrypted'
 
   # testing
   #gem 'spring'
-  gem "pry"
-  gem "pry-remote"
+  gem 'pry'
+  gem 'pry-remote'
   gem 'minitest'
   gem 'minitest-rails'
   gem 'minitest-focus'
@@ -39,5 +28,5 @@ end
 
 # code coverage, metrics
 group :test do
-  gem "codeclimate-test-reporter", require: nil
+  gem 'codeclimate-test-reporter', require: false
 end
