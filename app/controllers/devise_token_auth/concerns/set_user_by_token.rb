@@ -37,7 +37,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     if devise_warden_user && devise_warden_user.tokens[@client_id].nil?
       @used_auth_by_token = false
       @resource = devise_warden_user
-      @authentication = uid && @resource.authentications.uid(uid).first || @resource.authentications.first
+      @authentication = uid && @resource.authentications.domained(request_domain).uid(uid).first_or_create
       @authentication.create_new_auth_token
     end
 
