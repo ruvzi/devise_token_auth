@@ -53,7 +53,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     return false unless @token
 
     # mitigate timing attacks by finding by uid instead of auth token
-    authentication = uid && Authentication.uid(uid).first
+    authentication = uid && Authentication.domained(request_domain).uid(uid).first
     user = authentication.try(:user)
 
     if user && authentication.valid_token?(@token, @client_id)
