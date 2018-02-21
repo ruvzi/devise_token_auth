@@ -1,3 +1,25 @@
+# == Schema Information
+#
+# Table name: authentications
+#
+#  id         :integer          not null, primary key
+#  user_id    :integer
+#  provider   :string           default("email"), not null
+#  uid        :string           default(""), not null
+#  data       :text
+#  tokens     :json
+#  created_at :datetime
+#  updated_at :datetime
+#  deleted_at :datetime
+#  token      :string
+#  expiry     :integer
+#  expires_at :datetime
+#
+# Indexes
+#
+#  index_authentications_on_uid_and_provider_and_deleted_at  (uid,provider,deleted_at) UNIQUE
+#
+
 require 'bcrypt'
 class Authentication < ActiveRecord::Base
   include DeviseTokenAuth::Concerns::Strategy
