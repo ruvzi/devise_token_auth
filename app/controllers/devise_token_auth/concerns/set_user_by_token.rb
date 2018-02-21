@@ -33,7 +33,6 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     # check for an existing user, authenticated via warden/devise
     devise_warden_user =  request.env['warden'] && warden.user(rc.to_s.underscore.to_sym)
-
     if devise_warden_user && devise_warden_user.tokens[@client_id].nil?
       @used_auth_by_token = false
       @resource = devise_warden_user
