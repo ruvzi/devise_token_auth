@@ -39,7 +39,7 @@ module DeviseTokenAuth
       @error_status = 400
 
       if @resource
-        @authentication = @resource.authentications.uid(email).first
+        @authentication = @resource.authentications.domained(request_domain).uid(email).first
         yield if block_given?
         @resource.send_reset_password_instructions({
           email: email,
@@ -67,7 +67,7 @@ module DeviseTokenAuth
       @resource = resource_class.reset_password_by_token({
         reset_password_token: resource_params[:reset_password_token]
       })
-      @authentication = @resource.authentication
+      @authentication = @resource.authentication(request_domain)
 
       if @resource && @authentication && @authentication.persisted?
         client_id  = SecureRandom.urlsafe_base64(nil, false)

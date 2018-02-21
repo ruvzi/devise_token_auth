@@ -14,10 +14,16 @@
 #  token      :string
 #  expiry     :integer
 #  expires_at :datetime
+#  domain_id  :integer
 #
 # Indexes
 #
+#  index_authentications_on_domain_id                        (domain_id)
 #  index_authentications_on_uid_and_provider_and_deleted_at  (uid,provider,deleted_at) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (domain_id => domains.id)
 #
 
 require 'bcrypt'
@@ -29,6 +35,7 @@ class Authentication < ActiveRecord::Base
 
   scope :provider, -> (provider){where(provider: provider)}
   scope :uid,      -> (uid){where.not(user_id: nil).where(uid: uid)}
+  scope :domained, ->(domain) { where(domain_id: domain&.subsite_id ) }
 
   validates_presence_of :uid, if: Proc.new { |u| u.provider != 'email' }
 

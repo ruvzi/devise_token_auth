@@ -229,7 +229,7 @@ module DeviseTokenAuth
         if (auth_email = auth_hash.recursive_find_by_key('email').presence.try(:downcase)).present?
           @resource = resource_class.find_by(email: auth_email)
         end
-        @resource ||= if (@authentication = Authentication.provider(provider).uid(uid).first).present? && @authentication.user.present?
+        @resource ||= if (@authentication = Authentication.provider(provider).uid(uid).domained(request_domain).first).present? && @authentication.user.present?
                         @authentication.user
                       else
                         email = auth_email || "#{uid}.#{provider}@example.com"
@@ -241,7 +241,7 @@ module DeviseTokenAuth
           @resource.save
         end
       end
-      @authentication ||= @resource.authentications.find_or_initialize_by(provider: provider, uid: uid)
+      @authentication ||= @resource.authentications.domained(request_domain).find_or_initialize_by(provider: provider, uid: uid)
 
       @authentication.user ||= @resource
 
@@ -251,6 +251,7 @@ module DeviseTokenAuth
       OauthLogger.debug @authentication.inspect
       OauthLogger.debug "token before: #{@authentication.data.credentials.token}" if @authentication.data.present?
 
+      @authentication.domain_id = request_domain&.subsite_id
       @authentication.data = auth_hash
       @authentication.save
       OauthLogger.debug "@authentication errors: #{@authentication.errors.full_messages}"

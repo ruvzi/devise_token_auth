@@ -22,9 +22,6 @@ module DeviseTokenAuth::Concerns::User
     end
 
     has_many :authentications, dependent: :destroy, autosave: true
-    has_one  :authentication, -> {where(provider: 'email')}
-
-    delegate :tokens, to: :authentication
 
     after_create :add_email_authentication
 
@@ -32,6 +29,14 @@ module DeviseTokenAuth::Concerns::User
     attr_writer :allow_password_change
     def allow_password_change
       @allow_password_change || false
+    end
+
+    def authentication(domain)
+	    authentications.domained(domain).provider('email').find_or_create
+    end
+
+    def tokens
+	    authentication&.tokens
     end
 
     # override devise method to include additional info as opts hash

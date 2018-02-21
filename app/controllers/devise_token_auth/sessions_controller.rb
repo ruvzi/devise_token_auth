@@ -30,7 +30,7 @@ module DeviseTokenAuth
         end
 
         @resource = resource_class.joins(:authentications).where(q, q_value).first
-        @authentication = @resource.authentication || @resource.create_authentication if @resource
+        @authentication = @resource.authentication(request_domain) if @resource
       end
 
       if @resource and !@resource.blocked? and valid_params?(field, q_value) and @resource.valid_password?(resource_params[:password]) and (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
@@ -42,6 +42,7 @@ module DeviseTokenAuth
           token: BCrypt::Password.create(@token),
           expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
         }
+        @authentication.domain_id = request_domain&.subsite_id
         @authentication.save
 
         sign_in(:user, @resource, store: true, forse: true)
@@ -91,7 +92,7 @@ module DeviseTokenAuth
           admin_id = current_user.id
         end
         @resource = user
-        @authentication = @resource.authentication || @resource.create_authentication if @resource
+        @authentication = @resource.authentication(request_domain) if @resource
         @client_id = SecureRandom.urlsafe_base64(nil, false)
         @token     = SecureRandom.urlsafe_base64(nil, false)
 
