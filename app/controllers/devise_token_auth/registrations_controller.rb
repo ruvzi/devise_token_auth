@@ -72,10 +72,14 @@ module DeviseTokenAuth
             update_auth_header
           end
           unless @resource.confirmed?
-            @resource.send_confirmation_instructions({
+            opts = {
               client_config: params[:config_name],
-              redirect_url: @redirect_url
-            })
+              redirect_url: @redirect_url,
+              from: request_domain&.devise_sender.presence || Devise.mailer_sender
+            }
+            mail_subject = request_domain&.devise_confirmation_subject
+            opts[:subject] = mail_subject if mail_subject
+            @resource.send_confirmation_instructions(opts)
           end
 
           render_create_success

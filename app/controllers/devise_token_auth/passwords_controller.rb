@@ -39,14 +39,18 @@ module DeviseTokenAuth
       @error_status = 400
 
       if @resource
-        @authentication = @resource.authentications.domained(request_domain).uid(email).first
+        @authentication = @resource.authentications.domained(request_domain).uid(email).first_or_create
         yield if block_given?
-        @resource.send_reset_password_instructions({
+        opts = {
           email: email,
           provider: 'email',
           redirect_url: redirect_url,
-          client_config: params[:config_name]
-        })
+          client_config: params[:config_name],
+          from: request_domain&.devise_sender.presence || Devise.mailer_sender
+        }
+        subject = request_domain&.devise_reset_password_subject
+        opts[:subject] = subject if subject.present?
+        @resource.send_reset_password_instructions(opts)
 
         if @resource.errors.empty?
           return render_create_success

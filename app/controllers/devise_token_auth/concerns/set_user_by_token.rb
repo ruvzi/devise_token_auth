@@ -114,7 +114,8 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
   def recaptcha_valid?(code)
     return true if code.nil?
-    response = Net::HTTP.get_response(URI.parse("https://www.google.com/recaptcha/api/siteverify?secret=#{ENV['recaptcha_private_key']}&response=#{code}&remoteip=#{request.remote_ip}"))
+    recaptcha_private_key = (recaptcha_config = request_domain&.recaptcha_config).present? ? recaptcha_config[:private_key] : ENV['recaptcha_private_key']
+    response = Net::HTTP.get_response(URI.parse("https://www.google.com/recaptcha/api/siteverify?secret=#{recaptcha_private_key}&response=#{code}&remoteip=#{request.remote_ip}"))
     JSON.parse(response.body)['success']
   end
 

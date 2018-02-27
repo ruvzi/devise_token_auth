@@ -3,13 +3,17 @@ module DeviseTokenAuth
     before_action :set_user_by_token, only: [:new]
 
     def new
-      @resource.send_confirmation_instructions
-      render json: {success: successfully_sent?(@resource)}
+      opts = { from: sender_mail }
+      opts[:subject] = mail_subject if mail_subject
+      @resource.send_confirmation_instructions(opts)
+      render json: { success: successfully_sent?(@resource) }
     end
 
     def create
       #TODO add send by find email
-      @resource = resource_class.send_confirmation_instructions(resource_params)
+      opts = resource_params.merge!(from: sender_mail)
+      opts[:subject] = mail_subject if mail_subject
+      @resource = resource_class.send_confirmation_instructions(opts)
     end
 
     def show
@@ -41,6 +45,16 @@ module DeviseTokenAuth
       else
         redirect_to root_url, alert: 'Not Found'
       end
+    end
+
+    protected
+
+    def sender_mail
+      request_domain&.devise_sender.presence || Devise.mailer_sender
+    end
+
+    def mail_subject
+      request_domain&.devise_confirmation_subject
     end
   end
 end

@@ -40,15 +40,13 @@ module DeviseTokenAuth::Concerns::User
     end
 
     # override devise method to include additional info as opts hash
-    def send_confirmation_instructions(opts=nil)
+    def send_confirmation_instructions(opts = {})
       unless @raw_confirmation_token
         generate_confirmation_token!
       end
 
-      opts ||= {}
-
       # fall back to "default" config name
-      opts[:client_config] ||= "default"
+      opts[:client_config] ||= 'default'
 
       if pending_reconfirmation?
         opts[:to] = unconfirmed_email
@@ -58,13 +56,11 @@ module DeviseTokenAuth::Concerns::User
     end
 
     # override devise method to include additional info as opts hash
-    def send_reset_password_instructions(opts=nil)
+    def send_reset_password_instructions( opts = {})
       token = set_reset_password_token
 
-      opts ||= {}
-
       # fall back to "default" config name
-      opts[:client_config] ||= "default"
+      opts[:client_config] ||= 'default'
 
       send_devise_notification(:reset_password_instructions, token, opts)
 
