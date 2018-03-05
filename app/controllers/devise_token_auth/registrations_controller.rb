@@ -52,7 +52,7 @@ module DeviseTokenAuth
         resource_class.set_callback('create', :after, :send_on_create_confirmation_instructions)
         resource_class.skip_callback('create', :after, :send_on_create_confirmation_instructions)
         if @resource.save
-          @authentication = @resource.create_authentication
+          @authentication = @resource.authentication(request_domain)
           yield @resource if block_given?
 
           if @resource.active_for_authentication?

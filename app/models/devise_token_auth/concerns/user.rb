@@ -23,8 +23,6 @@ module DeviseTokenAuth::Concerns::User
 
     has_many :authentications, dependent: :destroy, autosave: true
 
-    after_create :add_email_authentication
-
     # allows user to change password without current_password
     attr_writer :allow_password_change
     def allow_password_change
@@ -35,8 +33,8 @@ module DeviseTokenAuth::Concerns::User
 	    authentications.domained(domain).provider('email').first_or_create
     end
 
-    def tokens
-	    authentication&.tokens
+    def tokens(domain)
+	    authentication(domain)&.tokens
     end
 
     # override devise method to include additional info as opts hash
@@ -87,11 +85,7 @@ module DeviseTokenAuth::Concerns::User
   end
 
   protected
-  def authentication_email
-    self.authentication.update(uid: self.email)
-  end
-
-  def add_email_authentication
-    self.create_authentication if self.authentication.blank?
+  def authentication_email(domain)
+    self.authentication(domain).update(uid: self.email)
   end
 end
