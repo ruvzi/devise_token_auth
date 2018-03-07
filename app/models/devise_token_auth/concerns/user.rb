@@ -29,7 +29,7 @@ module DeviseTokenAuth::Concerns::User
       @allow_password_change || false
     end
 
-    def authentication(domain)
+    def authentication(domain = nil)
 	    authentications.domained(domain).provider('email').first_or_create
     end
 
