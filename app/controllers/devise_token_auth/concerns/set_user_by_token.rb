@@ -37,7 +37,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       @used_auth_by_token = false
       @resource = devise_warden_user
       @authentication = uid && @resource.authentications.domained(request_domain).uid(uid).first_or_create
-      @authentication.create_new_auth_token
+      @authentication&.create_new_auth_token
     end
 
     # user has already been found and authenticated
@@ -70,7 +70,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
   def update_auth_header
     # cannot save object if model has invalid params
-    return unless @resource and @resource.valid? and @client_id
+    return unless @resource && @resource.valid? && @authentication && @client_id
 
     # Generate new client_id with existing authentication
     @client_id = nil unless @used_auth_by_token
