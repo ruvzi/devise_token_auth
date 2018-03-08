@@ -34,7 +34,7 @@ module DeviseTokenAuth::Concerns::User
     end
 
     def tokens(domain = nil)
-	    authentication(domain)&.tokens
+	    authentication(domain)&.tokens.presence || {}
     end
 
     # override devise method to include additional info as opts hash
