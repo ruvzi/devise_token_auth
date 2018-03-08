@@ -33,7 +33,7 @@ module DeviseTokenAuth::Concerns::User
 	    authentications.domained(domain).provider('email').first_or_create
     end
 
-    def tokens(domain)
+    def tokens(domain = nil)
 	    authentication(domain)&.tokens
     end
 
