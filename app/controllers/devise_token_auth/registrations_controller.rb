@@ -75,7 +75,8 @@ module DeviseTokenAuth
             opts = {
               client_config: params[:config_name],
               redirect_url: @redirect_url,
-              from: request_domain&.devise_sender.presence || Devise.mailer_sender
+              from: request_domain&.devise_sender.presence || Devise.mailer_sender,
+              domain_id: request_domain&.id
             }
             mail_subject = request_domain&.devise_confirmation_subject
             opts[:subject] = mail_subject if mail_subject

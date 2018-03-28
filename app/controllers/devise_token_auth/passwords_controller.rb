@@ -1,7 +1,7 @@
 module DeviseTokenAuth
   class PasswordsController < DeviseTokenAuth::ApplicationController
-    before_action :set_user_by_token, :only => [:update]
-    skip_after_action :update_auth_header, :only => [:create, :edit]
+    before_action :set_user_by_token, only: [:update]
+    skip_after_action :update_auth_header, only: [:create, :edit]
 
     # this action is responsible for generating password reset tokens and
     # sending emails
@@ -29,7 +29,7 @@ module DeviseTokenAuth
       q = "authentications.uid = ? AND authentications.provider='email'"
 
       # fix for mysql default case insensitivity
-      if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
+      if ActiveRecord::Base.connection.adapter_name.downcase.starts_with?('mysql')
         q = 'BINARY' + q
       end
 
@@ -46,19 +46,20 @@ module DeviseTokenAuth
           provider: 'email',
           redirect_url: redirect_url,
           client_config: params[:config_name],
-          from: request_domain&.devise_sender.presence || Devise.mailer_sender
+          from: request_domain&.devise_sender.presence || Devise.mailer_sender,
+          domain_id: request_domain&.id
         }
         subject = request_domain&.devise_reset_password_subject
         opts[:subject] = subject if subject.present?
         @resource.send_reset_password_instructions(opts)
 
         if @resource.errors.empty?
-          return render_create_success
+          return render_create_success(email)
         else
           @errors = @resource.errors
         end
       else
-        @errors = [I18n.t("devise_token_auth.passwords.user_not_found", email: email)]
+        @errors = [I18n.t('devise_token_auth.passwords.user_not_found', email: email)]
         @error_status = 404
       end
 
@@ -142,14 +143,14 @@ module DeviseTokenAuth
     def render_create_error_missing_email
       render json: {
           success: false,
-          errors: [I18n.t("devise_token_auth.passwords.missing_email")]
+          errors: [I18n.t('devise_token_auth.passwords.missing_email')]
       }, status: 401
     end
 
     def render_create_error_missing_redirect_url
       render json: {
           success: false,
-          errors: [I18n.t("devise_token_auth.passwords.missing_redirect_url")]
+          errors: [I18n.t('devise_token_auth.passwords.missing_redirect_url')]
       }, status: 401
     end
 
@@ -157,15 +158,15 @@ module DeviseTokenAuth
       render json: {
           status: 'error',
           data:   resource_data,
-          errors: [I18n.t("devise_token_auth.passwords.not_allowed_redirect_url", redirect_url: @redirect_url)]
+          errors: [I18n.t('devise_token_auth.passwords.not_allowed_redirect_url', redirect_url: @redirect_url)]
       }, status: 422
     end
 
-    def render_create_success
+    def render_create_success(email)
       render json: {
           success: true,
           data: resource_data(resource_json: @authentication.decorate.user_response),
-          message: I18n.t("devise_token_auth.passwords.sended", email: @email)
+          message: I18n.t('devise_token_auth.passwords.sended', email: email)
       }
     end
 
@@ -190,14 +191,14 @@ module DeviseTokenAuth
     def render_update_error_password_not_required
       render json: {
           success: false,
-          errors: [I18n.t("devise_token_auth.passwords.password_not_required", provider: @resource.provider.humanize)]
+          errors: [I18n.t('devise_token_auth.passwords.password_not_required', provider: @resource.provider.humanize)]
       }, status: 422
     end
 
     def render_update_error_missing_password
       render json: {
           success: false,
-          errors: [I18n.t("devise_token_auth.passwords.missing_passwords")]
+          errors: [I18n.t('devise_token_auth.passwords.missing_passwords')]
       }, status: 422
     end
 
@@ -205,7 +206,7 @@ module DeviseTokenAuth
       render json: {
           success: true,
           data: resource_data(resource_json: @authentication.decorate.user_response),
-          message: I18n.t("devise_token_auth.passwords.successfully_updated")
+          message: I18n.t('devise_token_auth.passwords.successfully_updated')
       }
     end
 
