@@ -251,7 +251,7 @@ module DeviseTokenAuth
       OauthLogger.debug @authentication.inspect
       OauthLogger.debug "token before: #{@authentication.data.credentials.token}" if @authentication.data.present?
 
-      @authentication.domain_id = request_domain&.subsite_id
+      @authentication.domain_id = request_domain&.id
       @authentication.data = auth_hash
       @authentication.save
       OauthLogger.debug "@authentication errors: #{@authentication.errors.full_messages}"

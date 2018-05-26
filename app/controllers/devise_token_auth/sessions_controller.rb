@@ -42,7 +42,7 @@ module DeviseTokenAuth
           token: BCrypt::Password.create(@token),
           expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
         }
-        @authentication.domain_id = request_domain&.subsite_id
+        @authentication.domain_id = request_domain&.id
         @authentication.save
 
         sign_in(:user, @resource, store: true, forse: true)

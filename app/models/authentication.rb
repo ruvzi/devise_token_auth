@@ -35,7 +35,7 @@ class Authentication < ActiveRecord::Base
 
   scope :provider, -> (provider){where(provider: provider)}
   scope :uid,      -> (uid){where.not(user_id: nil).where(uid: uid)}
-  scope :domained, ->(domain) { where(domain_id: domain&.subsite_id ) }
+  scope :domained, ->(domain) { where(domain_id: domain&.id ) }
 
   validates_presence_of :uid, if: Proc.new { |u| u.provider != 'email' }
 
