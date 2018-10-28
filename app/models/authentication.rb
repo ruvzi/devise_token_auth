@@ -120,11 +120,11 @@ class Authentication < ActiveRecord::Base
     expiry = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
 
     {
-        'access-token' => token,
-        'token-type'   => 'Bearer',
-        client:           client_id,
-        expiry:           expiry.to_s,
-        uid:              self.uid
+      'access-token' => token,
+      'token-type'   => 'Bearer',
+      'client'       => client_id,
+      'expiry'       =>  expiry.to_s,
+      'uid'          =>  self.uid
     }
   end
 
