@@ -24,16 +24,19 @@ module DeviseTokenAuth
         end
 
         q = "authentications.uid = ? AND authentications.provider='email'"
+        resource_q = "#{field} = ?"
 
         if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
           q = 'BINARY ' + q
+          resource_q = 'BINARY ' + resource_q
         end
 
         @resource = resource_class.joins(:authentications).where(q, q_value).first
+        @resource ||= resource_class.where(resource_q, q_value).first
         @authentication = @resource.authentication(request_domain) if @resource
       end
 
-      if @resource and !@resource.blocked? and valid_params?(field, q_value) and @resource.valid_password?(resource_params[:password]) and (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
+      if @resource && !@resource.blocked? && valid_params?(field, q_value) && @resource.valid_password?(resource_params[:password]) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
         # create client id
         @client_id = SecureRandom.urlsafe_base64(nil, false)
         @token     = SecureRandom.urlsafe_base64(nil, false)
