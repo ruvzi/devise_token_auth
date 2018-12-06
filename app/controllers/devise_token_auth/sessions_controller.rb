@@ -86,8 +86,7 @@ module DeviseTokenAuth
     end
 
     def login_as
-      account = Account.find_by(id: params[:account_id])
-      user = account.try(:user)
+      user = User.find_by(id: params[:user_id])
       if user && ((is_admin = session[:admin_id].eql?(user.id)) || can?(:login_as, user))
         if is_admin
           session.delete(:admin_id)
