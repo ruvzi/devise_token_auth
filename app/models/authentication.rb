@@ -16,15 +16,6 @@
 #  expires_at :datetime
 #  domain_id  :integer
 #
-# Indexes
-#
-#  index_authentications_on_domain_id                        (domain_id)
-#  index_authentications_on_uid_and_provider_and_deleted_at  (uid,provider,deleted_at) UNIQUE
-#
-# Foreign Keys
-#
-#  fk_rails_...  (domain_id => domains.id)
-#
 
 require 'bcrypt'
 class Authentication < ActiveRecord::Base
@@ -33,11 +24,11 @@ class Authentication < ActiveRecord::Base
   belongs_to :user
   acts_as_paranoid
 
-  scope :provider, -> (provider){where(provider: provider)}
-  scope :uid,      -> (uid){where.not(user_id: nil).where(uid: uid)}
-  scope :domained, ->(domain) { where(domain_id: domain&.id ) }
+  scope :provider, ->(provider) { where(provider: provider) }
+  scope :uid,      ->(uid) { where.not(user_id: nil).where(uid: uid) }
+  scope :domained, ->(domain) { where(domain_id: domain&.id) }
 
-  validates_presence_of :uid, if: Proc.new { |u| u.provider != 'email' }
+  validates_presence_of :uid, if: proc { |u| u.provider != 'email' }
 
   serialize :data
 
