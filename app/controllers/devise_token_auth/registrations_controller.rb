@@ -10,14 +10,15 @@ module DeviseTokenAuth
     param :password, String, desc: 'registrations.create.params.password', required: true
     param :recaptcha, String, desc: 'registrations.create.params.recaptcha', required: true
     def create
-      @resource            = resource_class.new(sign_up_params)
+      @resource = resource_class.new(sign_up_params)
 
       # honor devise configuration for case_insensitive_keys
-      if resource_class.case_insensitive_keys.include?(:email)
-        @resource.email = sign_up_params[:email].try :downcase
-      else
-        @resource.email = sign_up_params[:email]
-      end
+      @resource.email =
+        if resource_class.case_insensitive_keys.include?(:email)
+          sign_up_params[:email]&.downcase
+        else
+          sign_up_params[:email]
+        end
 
       # give redirect value from params priority
       @redirect_url = params[:confirm_success_url]
@@ -27,11 +28,11 @@ module DeviseTokenAuth
 
       unless recaptcha_valid?(params['recaptcha'])
         return render json: {
-            status: 'error',
-            data: {
-                errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
-            },
-            errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
+          status: 'error',
+          data: {
+              errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
+          },
+          errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
         }, status: 403
       end
 
@@ -67,7 +68,7 @@ module DeviseTokenAuth
             }
 
             @authentication.save!
-            @resource.save!
+            @resource.add_profile!
 
             update_auth_header
           end

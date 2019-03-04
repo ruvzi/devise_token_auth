@@ -14,14 +14,17 @@ module DeviseTokenAuth::Concerns::User
 
   included do
     # Hack to check if devise is already enabled
-    if self.method_defined?(:devise_modules)
-      self.devise_modules.delete(:omniauthable)
+    if method_defined?(:devise_modules)
+      devise_modules.delete(:omniauthable)
     else
       devise :database_authenticatable, :registerable,
              :recoverable, :trackable, :validatable, :confirmable
     end
 
     has_many :authentications, dependent: :destroy, autosave: true
+    has_one :active_authentication, -> { order(updated_at: :desc) }, class_name: 'Authentication'
+
+    delegate :domain, to: :active_authentication, allow_nil: true
 
     # allows user to change password without current_password
     attr_writer :allow_password_change
@@ -30,11 +33,11 @@ module DeviseTokenAuth::Concerns::User
     end
 
     def authentication(domain = nil)
-	    authentications.domained(domain).provider('email').first_or_create
+      authentications.domained(domain).provider('email').first_or_create
     end
 
     def tokens(domain = nil)
-	    authentication(domain)&.tokens.presence || {}
+      authentication(domain)&.tokens.presence || {}
     end
 
     # override devise method to include additional info as opts hash
