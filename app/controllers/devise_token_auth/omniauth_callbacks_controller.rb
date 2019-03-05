@@ -37,7 +37,7 @@ module DeviseTokenAuth
       sign_in(:user, @resource, store: true, bypass: true, forse: true)
 
       @authentication.save!
-      @resource.save!
+      @resource.add_profile!
       @resource.reload
 
       Delayed::Job.enqueue OmniauthCallbackJob.new(@resource.class, @resource.id, @authentication.id) if @resource.respond_to?(:omniauth_success_callback!)
