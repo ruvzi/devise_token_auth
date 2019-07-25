@@ -2,7 +2,7 @@
 #
 # Table name: authentications
 #
-#  id         :integer          not null, primary key
+#  id         :bigint(8)        not null, primary key
 #  user_id    :integer
 #  provider   :string           default("email"), not null
 #  uid        :string           default(""), not null
@@ -27,7 +27,7 @@ class Authentication < ActiveRecord::Base
 
   scope :provider, ->(provider) { where(provider: provider) }
   scope :uid,      ->(uid) { where.not(user_id: nil).where(uid: uid) }
-  scope :domained, ->(domain) { where(domain_id: domain&.id) }
+  scope :domained, ->(domain) { where(domain_id: domain&.auth_domain_id) }
 
   validates_presence_of :uid, if: proc { |u| u.provider != 'email' }
 
