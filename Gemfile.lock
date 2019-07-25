@@ -6,6 +6,7 @@ PATH
       delayed_job_active_record (~> 4.0.3)
       devise (~> 4.2.1)
       draper (~> 2.1.0)
+      omniauth-oauth2 (~> 1.6.0)
       paranoia (~> 2.0)
       rails (= 4.2.10)
 

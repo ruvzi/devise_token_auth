@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'rails', '4.2.10'
   s.add_dependency 'devise', '~> 4.2.1'
+  s.add_dependency 'omniauth-oauth2', '~> 1.6.0'
   s.add_dependency 'draper', '~> 2.1.0'
   s.add_dependency 'paranoia', '~> 2.0'
   s.add_dependency 'apipie-rails', '~> 0.3.6'
