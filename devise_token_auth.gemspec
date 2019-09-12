@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.test_files = Dir['test/**/*']
 
   s.add_dependency 'rails', '4.2.11.1'
-  s.add_dependency 'devise', '~> 4.6.2'
+  s.add_dependency 'devise', '~> 4.7.1'
   s.add_dependency 'omniauth-oauth2', '~> 1.6.0'
   s.add_dependency 'draper', '~> 2.1.0'
   s.add_dependency 'paranoia', '~> 2.4.2'
