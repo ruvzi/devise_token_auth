@@ -33,10 +33,10 @@ module DeviseTokenAuth::Concerns::SetUserByToken
 
     # check for an existing user, authenticated via warden/devise
     devise_warden_user =  request.env['warden'] && warden.user(rc.to_s.underscore.to_sym)
-    if devise_warden_user && devise_warden_user.tokens(request_domain)[@client_id].nil?
+    if devise_warden_user && devise_warden_user.tokens(auth_domain)[@client_id].nil?
       @used_auth_by_token = false
       @resource = devise_warden_user
-      @authentication = uid && @resource.authentications.domained(request_domain).uid(uid).first_or_create
+      @authentication = uid && @resource.authentications.domained(auth_domain).uid(uid).first_or_create
       @authentication&.create_new_auth_token
     end
 
@@ -52,8 +52,8 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     return false unless @token
 
     # mitigate timing attacks by finding by uid instead of auth token
-    authentication = uid && Authentication.domained(request_domain).uid(uid).first
-    user = authentication.try(:user)
+    authentication = uid && Authentication.domained(auth_domain).uid(uid).first
+    user = authentication&.user
 
     if user && authentication.valid_token?(@token, @client_id)
       bypass_sign_in(user, scope: :user)
@@ -122,7 +122,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
   private
   def is_batch_request?(user, client_id)
     !params[:unbatch] &&
-      (token = user.tokens(request_domain)[client_id]).present? &&
+      (token = user.tokens(request_domain&.auth_domain)[client_id]).present? &&
       (token_life = token['updated_at']) &&
       Time.parse(token_life) > @request_started_at - DeviseTokenAuth.batch_request_buffer_throttle
   end

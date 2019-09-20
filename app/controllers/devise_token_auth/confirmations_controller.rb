@@ -18,7 +18,7 @@ module DeviseTokenAuth
 
     def show
       @resource = resource_class.confirm_by_token(params[:confirmation_token])
-      @authentication = @resource.authentication(request_domain)
+      @authentication = @resource.authentication(auth_domain)
       if @resource && @authentication && @authentication.persisted?
         # create client id
         client_id  = SecureRandom.urlsafe_base64(nil, false)
@@ -50,11 +50,11 @@ module DeviseTokenAuth
     protected
 
     def sender_mail
-      request_domain&.devise_sender.presence || Devise.mailer_sender
+      auth_domain&.devise_sender.presence || Devise.mailer_sender
     end
 
     def mail_subject
-      request_domain&.devise_confirmation_subject
+      auth_domain&.devise_confirmation_subject
     end
   end
 end

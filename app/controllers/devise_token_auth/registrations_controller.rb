@@ -53,7 +53,7 @@ module DeviseTokenAuth
         resource_class.set_callback('create', :after, :send_on_create_confirmation_instructions)
         resource_class.skip_callback('create', :after, :send_on_create_confirmation_instructions)
         if @resource.save
-          @authentication = @resource.authentication(request_domain)
+          @authentication = @resource.authentication(auth_domain)
           yield @resource if block_given?
 
           if @resource.active_for_authentication?
@@ -76,10 +76,10 @@ module DeviseTokenAuth
             opts = {
               client_config: params[:config_name],
               redirect_url: @redirect_url,
-              from: request_domain&.devise_sender.presence || Devise.mailer_sender,
-              domain_id: request_domain&.id
+              from: auth_domain&.devise_sender.presence || Devise.mailer_sender,
+              domain_id: auth_domain&.id
             }
-            mail_subject = request_domain&.devise_confirmation_subject
+            mail_subject = auth_domain&.devise_confirmation_subject
             opts[:subject] = mail_subject if mail_subject
             @resource.send_confirmation_instructions(opts)
           end
