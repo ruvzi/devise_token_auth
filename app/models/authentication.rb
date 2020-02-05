@@ -2,19 +2,19 @@
 #
 # Table name: authentications
 #
-#  id         :bigint(8)        not null, primary key
-#  user_id    :integer
-#  provider   :string           default("email"), not null
-#  uid        :string           default(""), not null
+#  id         :bigint           not null, primary key
 #  data       :text
+#  deleted_at :datetime
+#  expires_at :datetime
+#  expiry     :integer
+#  provider   :string           default("email"), not null
+#  token      :string
 #  tokens     :json
+#  uid        :string           default(""), not null
 #  created_at :datetime
 #  updated_at :datetime
-#  deleted_at :datetime
-#  token      :string
-#  expiry     :integer
-#  expires_at :datetime
 #  domain_id  :integer
+#  user_id    :integer
 #
 
 require 'bcrypt'
