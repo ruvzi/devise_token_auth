@@ -110,7 +110,8 @@ class AuthenticationDecorator < Draper::Decorator
       id: object.id,
       user_id: object.user_id,
       uid: object.uid,
-      provider: object.provider
+      provider: object.provider,
+      adult_show: object.user.client.settings(:privacy).adult_show
     }
     response.merge!(object.user.decorate.extra_response)
     response
