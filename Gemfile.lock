@@ -1,3 +1,12 @@
+GIT
+  remote: git@github.com:ruvzi/pg_partitioned.git
+  revision: be0a77af317fe153775ee40992869c286bc212a5
+  branch: master
+  specs:
+    pg_partitioned (2.0.1)
+      activerecord (>= 4.2, < 6.1)
+      bulk_data_methods (= 1.1.2)
+
 PATH
   remote: .
   specs:
@@ -55,6 +64,9 @@ GEM
       encryptor (~> 3.0.0)
     bcrypt (3.1.13)
     builder (3.2.3)
+    bulk_data_methods (1.1.2)
+      activerecord (>= 3.0.0)
+      pg
     codeclimate-test-reporter (1.0.9)
       simplecov (<= 0.13)
     coderay (1.1.2)
@@ -257,6 +269,7 @@ DEPENDENCIES
   omniauth-github
   omniauth-google-oauth2
   pg (~> 0.21.0)
+  pg_partitioned!
   pry
   pry-remote
   rack-cors

@@ -18,7 +18,7 @@
 #
 
 require 'bcrypt'
-class Authentication < ActiveRecord::Base
+class Authentication < PgPartitioned::ByDomainId
   include DeviseTokenAuth::Concerns::Strategy
 
   belongs_to :user

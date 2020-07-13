@@ -2,6 +2,12 @@ source 'https://rubygems.org'
 
 gemspec
 
+if ENV['BUNDLE_GEMFILE'] =~ /local/
+  gem 'pg_partitioned', path: './../gems/pg_partitioned'
+else
+  gem 'pg_partitioned', git: 'git@github.com:ruvzi/pg_partitioned.git', branch: 'master'
+end
+
 group :development, :test do
   gem 'thor'
   gem 'figaro'
