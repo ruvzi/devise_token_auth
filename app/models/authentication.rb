@@ -19,10 +19,10 @@
 
 require 'bcrypt'
 class Authentication < PgPartitioned::ByDomainId
+  self.primary_key = :id
   include DeviseTokenAuth::Concerns::Strategy
 
   belongs_to :user
-  belongs_to :domain
   acts_as_paranoid
 
   scope :provider, ->(provider) { where(provider: provider) }
