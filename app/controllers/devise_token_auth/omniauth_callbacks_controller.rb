@@ -40,7 +40,15 @@ module DeviseTokenAuth
       @resource.add_profile!
       @resource.reload
 
-      Delayed::Job.enqueue OmniauthCallbackJob.new(@resource.class, @resource.id, @authentication.id) if @resource.respond_to?(:omniauth_success_callback!)
+      if @resource.respond_to?(:omniauth_success_callback!)
+        enqueue_params = {
+          payload_object: OmniauthCallbackJob.new(@resource.class, @resource.id, @authentication.id),
+          priority: 0,
+          run_at: Time.current,
+          queue: :high
+        }
+        Delayed::Job.enqueue(enqueue_params)
+      end
 
       yield if block_given?
       render_data_or_redirect('deliverCredentials', @auth_params.as_json, @authentication.decorate.user_response)
