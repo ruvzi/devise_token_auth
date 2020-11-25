@@ -80,7 +80,7 @@ class AuthenticationDecorator < Draper::Decorator
                     info['location']
                 end
     if city_name.present?
-      country.present? ? country.cities.find_by_name(city_name) :
+      country.present? ? country.cities.find_by(name: city_name) :
           City.where('name = ? or slug like ?', city_name, "#{city_name.downcase}%").first
     end
   end
@@ -98,7 +98,7 @@ class AuthenticationDecorator < Draper::Decorator
                      else
                        nil
                    end
-    Country.find_by_name(country_name) if country_name.present?
+    Country.find_by(name: country_name) if country_name.present?
   end
 
   def provider
