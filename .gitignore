@@ -10,3 +10,6 @@ test/dummy/config/application.yml
 coverage
 .idea
 .ruby-gemset
+
+Gemfile.lock
+Gemfile.local.lock

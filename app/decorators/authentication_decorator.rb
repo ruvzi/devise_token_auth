@@ -86,7 +86,7 @@ class AuthenticationDecorator < Draper::Decorator
   end
 
   def country_id
-    country.try(:id)
+    country&.id
   end
 
   def country

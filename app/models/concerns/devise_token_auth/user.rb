@@ -1,14 +1,12 @@
-module DeviseTokenAuth::Concerns::User
+module DeviseTokenAuth::User
   extend ActiveSupport::Concern
 
   def self.tokens_match?(token_hash, token)
     @token_equality_cache ||= {}
 
     key = "#{token_hash}/#{token}"
-    result = @token_equality_cache[key] ||= (::BCrypt::Password.new(token_hash) == token)
-    if @token_equality_cache.size > 10000
-      @token_equality_cache = {}
-    end
+    result = @token_equality_cache[key] ||= DeviseTokenAuth::TokenFactory.token_hash_is_token?(token_hash, token)
+    @token_equality_cache = {} if @token_equality_cache.size > 10000
     result
   end
 
@@ -21,10 +19,24 @@ module DeviseTokenAuth::Concerns::User
              :recoverable, :trackable, :validatable, :confirmable
     end
 
+    include DeviseTokenAuth::ActiveRecordSupport
+
     has_many :authentications, dependent: :destroy, autosave: true
     has_one :active_authentication, -> { order(updated_at: :desc) }, class_name: 'Authentication'
 
     delegate :domain, to: :active_authentication, allow_nil: true
+
+    # remove old tokens if password has changed
+    before_save :remove_tokens_after_password_reset
+
+    # don't use default devise email validation
+    def email_required?; false; end
+    def email_changed?; false; end
+    def will_save_change_to_email?; false; end
+
+    if DeviseTokenAuth.send_confirmation_email && devise_modules.include?(:confirmable)
+      include DeviseTokenAuth::ConfirmableSupport
+    end
 
     # allows user to change password without current_password
     attr_writer :allow_password_change
@@ -42,41 +54,47 @@ module DeviseTokenAuth::Concerns::User
 
     # override devise method to include additional info as opts hash
     def send_confirmation_instructions(opts = {})
-      unless @raw_confirmation_token
-        generate_confirmation_token!
-      end
+      generate_confirmation_token! unless @raw_confirmation_token
 
       # fall back to "default" config name
       opts[:client_config] ||= 'default'
-
-      if pending_reconfirmation?
-        opts[:to] = unconfirmed_email
-      end
+      opts[:to] = unconfirmed_email if pending_reconfirmation?
+      opts[:redirect_url] ||= DeviseTokenAuth.default_confirm_success_url
 
       send_devise_notification(:confirmation_instructions, @raw_confirmation_token, opts)
     end
 
     # override devise method to include additional info as opts hash
-    def send_reset_password_instructions( opts = {})
+    def send_reset_password_instructions(opts = {})
       token = set_reset_password_token
 
       # fall back to "default" config name
       opts[:client_config] ||= 'default'
 
       send_devise_notification(:reset_password_instructions, token, opts)
-
       token
+    end
+
+    # override devise method to include additional info as opts hash
+    def send_unlock_instructions(opts = {})
+      raw, enc = Devise.token_generator.generate(self.class, :unlock_token)
+      self.unlock_token = enc
+      save(validate: false)
+
+      # fall back to "default" config name
+      opts[:client_config] ||= 'default'
+
+      send_devise_notification(:unlock_instructions, raw, opts)
+      raw
     end
   end
 
   # this must be done from the controller so that additional params
   # can be passed on from the client
-  def send_confirmation_notification?
-    false
-  end
+  def send_confirmation_notification?; false; end
 
   def confirmed?
-    self.devise_modules.exclude?(:confirmable) || super
+    devise_modules.exclude?(:confirmable) || super
   end
 
   def no_authentications?
@@ -87,8 +105,22 @@ module DeviseTokenAuth::Concerns::User
     {}
   end
 
-  protected
+  private
+
   def authentication_email(domain)
     self.authentication(domain).update(uid: self.email)
+  end
+
+  def should_remove_tokens_after_password_reset?
+    saved_change_to_attribute?(:encrypted_password) &&
+      DeviseTokenAuth.remove_tokens_after_password_reset
+  end
+
+  def remove_tokens_after_password_reset
+    return unless should_remove_tokens_after_password_reset?
+
+    authentications.provider(:email).find_each do |authentication|
+      authentication.send(:remove_tokens_after_user_password_reset)
+    end
   end
 end

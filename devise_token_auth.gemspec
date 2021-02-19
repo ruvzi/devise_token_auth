@@ -1,30 +1,25 @@
-$:.push File.expand_path('../lib', __FILE__)
+require_relative 'lib/devise_token_auth/version'
 
-# Maintain your gem's version:
-require 'devise_token_auth/version'
+Gem::Specification.new do |spec|
+  spec.name        = 'devise_token_auth'
+  spec.version     = DeviseTokenAuth::VERSION
+  spec.authors     = ['Lynn Hurley']
+  spec.email       = ['lynn.dylan.hurley@gmail.com']
+  spec.homepage    = 'http://github.com/lynndylanhurley/devise_token_auth'
+  spec.summary     = 'Token based authentication for rails. Uses Devise + OmniAuth.'
+  spec.description = 'For use with client side single page apps such as the venerable https://github.com/lynndylanhurley/ng-token-auth.'
+  spec.license     = 'WTFPL'
 
-# Describe your gem and declare its dependencies:
-Gem::Specification.new do |s|
-  s.name        = 'devise_token_auth'
-  s.version     = DeviseTokenAuth::VERSION
-  s.authors     = ['Lynn Hurley']
-  s.email       = ['lynn.dylan.hurley@gmail.com']
-  s.homepage    = 'http://github.com/lynndylanhurley/devise_token_auth'
-  s.summary     = 'Token based authentication for rails. Uses Devise + OmniAuth.'
-  s.description = 'For use with client side single page apps such as the venerable https://github.com/lynndylanhurley/ng-token-auth.'
-  s.license     = 'WTFPL'
+  spec.files      = Dir['{app,config,db,lib}/**/*', 'LICENSE', 'Rakefile', 'README.md']
+  spec.test_files = Dir['test/**/*']
 
-  s.files      = Dir['{app,config,db,lib}/**/*', 'LICENSE', 'Rakefile', 'README.md']
-  s.test_files = Dir['test/**/*']
+  spec.add_dependency 'rails', '~> 6.1.3'
+  spec.add_dependency 'devise', '> 4.7.3', '< 5'
+  spec.add_dependency 'bcrypt', '~> 3.0'
 
-  s.add_dependency 'rails', '4.2.11.1'
-  s.add_dependency 'devise', '~> 4.7.1'
-  s.add_dependency 'omniauth-oauth2', '~> 1.6.0'
-  s.add_dependency 'draper', '~> 2.1.0'
-  s.add_dependency 'paranoia', '~> 2.4.2'
-  s.add_dependency 'apipie-rails', '~> 0.5.16'
-  s.add_dependency 'delayed_job_active_record', '~> 4.1.3'
-
-  s.add_development_dependency 'sqlite3', '~> 1.3'
-  s.add_development_dependency 'pg', '~> 0.21.0'
+  spec.add_dependency 'pg', '~> 1.2.3'
+  spec.add_dependency 'omniauth-oauth2', '~> 1.7.1'
+  spec.add_dependency 'draper', '~> 4.0.1'
+  spec.add_dependency 'paranoia', '~> 2.4.3'
+  spec.add_dependency 'delayed_job_active_record', '~> 4.1.5'
 end

@@ -1,1 +1,0 @@
-Apipie.configuration.api_controllers_matcher << File.expand_path('../../../app/controllers/**/*.rb', __FILE__)

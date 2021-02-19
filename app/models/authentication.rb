@@ -20,7 +20,8 @@
 require 'bcrypt'
 class Authentication < PgPartitioned::ByDomainId
   self.primary_key = :id
-  include DeviseTokenAuth::Concerns::Strategy
+  # include DeviseTokenAuth::Concerns::Strategy
+  include DeviseTokenAuth::AuthenticationOmniauthCallbacks
 
   belongs_to :user
   acts_as_paranoid
@@ -41,83 +42,85 @@ class Authentication < PgPartitioned::ByDomainId
   after_save :set_empty_token_hash
   after_initialize :set_empty_token_hash
 
-  # keep uid in sync with email
-  before_save :sync_uid
-
   # get rid of dead tokens
-  before_save :destroy_expired_tokens
+  before_save :destroy_expired_tokens #+
 
-  def valid_token?(token, client_id='default')
-    client_id ||= 'default'
+  def create_token(client: nil, lifespan: nil, cost: nil, **token_extras)
+    token = DeviseTokenAuth::TokenFactory.create(client: client, lifespan: lifespan, cost: cost)
 
-    return false unless self.tokens[client_id]
+    tokens[token.client] = {
+      token:  token.token_hash,
+      expiry: token.expiry
+    }.merge!(token_extras)
 
-    return true if token_is_current?(token, client_id)
-    return true if token_can_be_reused?(token, client_id)
+    clean_old_tokens
+
+    token
+  end
+
+  def valid_token?(token, client = 'default')
+    return false unless tokens[client]
+    return true if token_is_current?(token, client)
+    return true if token_can_be_reused?(token, client)
 
     # return false if none of the above conditions are met
     false
   end
 
-  def token_is_current?(token, client_id)
+  def token_is_current?(token, client)
     # ghetto HashWithIndifferentAccess
-    expiry     = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
-    token_hash = self.tokens[client_id]['token'] || self.tokens[client_id][:token]
+    expiry     = tokens[client]['expiry'] || tokens[client][:expiry]
+    token_hash = tokens[client]['token'] || tokens[client][:token]
 
     expiry && token &&
-      DateTime.strptime(expiry.to_s, '%s') > Time.now &&
+      DateTime.strptime(expiry.to_s, '%s') > Time.zone.now &&
       DeviseTokenAuth::Concerns::User.tokens_match?(token_hash, token)
   end
 
   # allow batch requests to use the previous token
-  def token_can_be_reused?(token, client_id)
+  def token_can_be_reused?(token, client)
     # ghetto HashWithIndifferentAccess
-    updated_at = self.tokens[client_id]['updated_at'] || self.tokens[client_id][:updated_at]
-    last_token = self.tokens[client_id]['last_token'] || self.tokens[client_id][:last_token]
+    updated_at = tokens[client]['updated_at'] || tokens[client][:updated_at]
+    last_token_hash = tokens[client]['last_token'] || tokens[client][:last_token]
 
-    updated_at && last_token &&
-      Time.parse(updated_at) > Time.now - DeviseTokenAuth.batch_request_buffer_throttle &&
-      ::BCrypt::Password.new(last_token) == token
+    updated_at && last_token_hash &&
+      updated_at.to_time > Time.zone.now - DeviseTokenAuth.batch_request_buffer_throttle &&
+      DeviseTokenAuth::TokenFactory.token_hash_is_token?(last_token_hash, token)
   end
 
   # update user's auth token (should happen on each request)
-  def create_new_auth_token(client_id = nil)
-    client_id  ||= SecureRandom.urlsafe_base64(nil, false)
-    last_token ||= nil
-    token        = SecureRandom.urlsafe_base64(nil, false)
-    token_hash   = ::BCrypt::Password.create(token)
-    expiry       = (Time.now + DeviseTokenAuth.token_lifespan).to_i
+  def create_new_auth_token(client = nil)
+    now = Time.zone.now
 
-    if self.tokens[client_id] and self.tokens[client_id]['token']
-      last_token = self.tokens[client_id]['token']
-    end
+    token = create_token(
+      client: client,
+      last_token: tokens.fetch(client, {})['token'],
+      updated_at: now
+    )
 
-    self.tokens[client_id] = {
-        token:      token_hash,
-        expiry:     expiry,
-        last_token: last_token,
-        updated_at: Time.now
-    }
-
-    self.save!
-
-    build_auth_header(token, client_id)
+    update_auth_header(token.token, token.client)
   end
 
-  def build_auth_header(token, client_id='default')
+  def build_auth_header(token, client = 'default')
     # client may use expiry to prevent validation request if expired
     # must be cast as string or headers will break
-    self.tokens ||= {}
-    self.tokens[client_id] ||= {}
-    expiry = self.tokens[client_id]['expiry'] || self.tokens[client_id][:expiry]
+    expiry = tokens[client]['expiry'] || tokens[client][:expiry]
 
     {
-      'access-token' => token,
-      'token-type'   => 'Bearer',
-      'client'       => client_id,
-      'expiry'       =>  expiry.to_s,
-      'uid'          =>  self.uid
+      DeviseTokenAuth.headers_names[:"access-token"] => token,
+      DeviseTokenAuth.headers_names[:"token-type"]   => 'Bearer',
+      DeviseTokenAuth.headers_names[:"client"]       => client,
+      DeviseTokenAuth.headers_names[:"expiry"]       => expiry.to_s,
+      DeviseTokenAuth.headers_names[:"uid"]          => uid
     }
+  end
+
+  def update_auth_header(token, client = 'default')
+    headers = build_auth_header(token, client)
+    clean_old_tokens
+    save!
+
+    headers
   end
 
 
@@ -131,11 +134,13 @@ class Authentication < PgPartitioned::ByDomainId
   end
 
 
-  def extend_batch_buffer(token, client_id)
-    self.tokens[client_id]['updated_at'] = Time.now
-    self.save!
+  def extend_batch_buffer(token, client)
+    tokens[client]['updated_at'] = Time.zone.now
+    update_auth_header(token, client)
+  end
 
-    build_auth_header(token, client_id)
+  def token_validation_response
+    as_json(except: %i[tokens created_at updated_at])
   end
 
   protected
@@ -145,16 +150,38 @@ class Authentication < PgPartitioned::ByDomainId
     self.tokens ||= {}
   end
 
-  def sync_uid
-    return unless (new_uid = self.user.try(:email)).present? && provider.eql?('email')
-    self.uid = new_uid
-  end
-
   def destroy_expired_tokens
     return unless self.tokens.present?
-    self.tokens.delete_if do |cid, v|
-      expiry = v[:expiry] || v['expiry']
-      DateTime.strptime(expiry.to_s, '%s') < Time.now
+
+    self.tokens.delete_if do |_cid, v|
+      DateTime.strptime((v[:expiry] || v['expiry']).to_s, '%s') < Time.now
+    end
+  end
+
+  def remove_tokens_after_user_password_reset
+    return if tokens.blank? || !tokens.many?
+
+    client, token_data = tokens.max_by { |_cid, v| v[:expiry] || v['expiry'] }
+    self.tokens = { client => token_data }
+    save
+  end
+
+  def max_client_tokens_exceeded?
+    tokens.length > DeviseTokenAuth.max_number_of_devices
+  end
+
+  def clean_old_tokens
+    if tokens.present? && max_client_tokens_exceeded?
+      # Using Enumerable#sort_by on a Hash will typecast it into an associative
+      #   Array (i.e. an Array of key-value Array pairs). However, since Hashes
+      #   have an internal order in Ruby 1.9+, the resulting sorted associative
+      #   Array can be converted back into a Hash, while maintaining the sorted
+      #   order.
+      self.tokens = tokens.sort_by { |_cid, v| v[:expiry] || v['expiry'] }.to_h
+
+      # Since the tokens are sorted by expiry, shift the oldest client token
+      #   off the Hash until it no longer exceeds the maximum number of clients
+      tokens.shift while max_client_tokens_exceeded?
     end
   end
 end
