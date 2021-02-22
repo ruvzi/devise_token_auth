@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
   spec.test_files = Dir['test/**/*']
 
   spec.add_dependency 'rails', '~> 6.1.3'
-  spec.add_dependency 'devise', '> 4.7.3', '< 5'
+  spec.add_dependency 'devise', '>= 4.7.3', '< 5'
   spec.add_dependency 'bcrypt', '~> 3.0'
 
   spec.add_dependency 'pg', '~> 1.2.3'

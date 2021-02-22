@@ -1,4 +1,4 @@
-module DeviseTokenAuth::User
+module DeviseTokenAuth::Concerns::User
   extend ActiveSupport::Concern
 
   def self.tokens_match?(token_hash, token)
@@ -19,23 +19,24 @@ module DeviseTokenAuth::User
              :recoverable, :trackable, :validatable, :confirmable
     end
 
-    include DeviseTokenAuth::ActiveRecordSupport
-
     has_many :authentications, dependent: :destroy, autosave: true
     has_one :active_authentication, -> { order(updated_at: :desc) }, class_name: 'Authentication'
+
+    validates :email, presence: true, if: :email_provider?
+    validates :email, uniqueness_without_deleted: { scope: :deleted_at }, allow_blank: true, case_sensitive: true, if: :will_save_change_to_email? #TODO add restore
+    validates :email, devise_token_auth_email: true, allow_nil: true, allow_blank: true, if: :will_save_change_to_email?
+
+    validates_presence_of     :password, if: :password_required?
+    validates_confirmation_of :password, if: :password_required?
+    validates_length_of       :password, within: Devise.password_length, allow_blank: true
 
     delegate :domain, to: :active_authentication, allow_nil: true
 
     # remove old tokens if password has changed
     before_save :remove_tokens_after_password_reset
 
-    # don't use default devise email validation
-    def email_required?; false; end
-    def email_changed?; false; end
-    def will_save_change_to_email?; false; end
-
     if DeviseTokenAuth.send_confirmation_email && devise_modules.include?(:confirmable)
-      include DeviseTokenAuth::ConfirmableSupport
+      include DeviseTokenAuth::Concerns::ConfirmableSupport
     end
 
     # allows user to change password without current_password
@@ -45,11 +46,16 @@ module DeviseTokenAuth::User
     end
 
     def authentication(domain = nil)
-      authentications.domained(domain).provider('email').first_or_create
+      authentications.domained(domain).provider(:email).first_or_create
     end
 
     def tokens(domain = nil)
       authentication(domain)&.tokens.presence || {}
+    end
+
+    def password_required?
+      return false if authentications.provider(:email).first.blank?
+      super
     end
 
     # override devise method to include additional info as opts hash

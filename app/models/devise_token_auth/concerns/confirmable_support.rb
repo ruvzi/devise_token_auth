@@ -13,16 +13,19 @@ module DeviseTokenAuth::ConfirmableSupport
       @bypass_confirmation_postpone = false
       postpone
     end
+
+    def not_sync_email?
+      devise_modules.include?(:confirmable) &&
+        !@bypass_confirmation_postpone &&
+        postpone_email_change?
+    end
   end
 
   protected
 
   def email_value_in_database
-    rails51 = Rails.gem_version >= Gem::Version.new("5.1.x")
-    if rails51 && respond_to?(:email_in_database)
-      email_in_database
-    else
-      email_was
-    end
+    return email_in_database if respond_to?(:email_in_database)
+
+    email_was
   end
 end

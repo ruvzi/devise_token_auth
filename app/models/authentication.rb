@@ -21,7 +21,9 @@ require 'bcrypt'
 class Authentication < PgPartitioned::ByDomainId
   self.primary_key = :id
   # include DeviseTokenAuth::Concerns::Strategy
-  include DeviseTokenAuth::AuthenticationOmniauthCallbacks
+  include DeviseTokenAuth::Concerns::AuthenticationOmniauthCallbacks
+
+  include DeviseTokenAuth::Concerns::ActiveRecordSupport
 
   belongs_to :user
   acts_as_paranoid
@@ -30,13 +32,11 @@ class Authentication < PgPartitioned::ByDomainId
   scope :uid,      ->(uid) { where.not(user_id: nil).where(uid: uid) }
   scope :domained, ->(domain) { where(domain_id: domain&.auth_domain_id) }
 
-  validates_presence_of :uid, if: proc { |u| u.provider != 'email' }
-
   serialize :data
 
-  unless table_exists? && self.columns_hash['tokens'] && self.columns_hash['tokens'].type.in?([:json, :jsonb])
-    serialize :tokens, JSON
-  end
+  # unless table_exists? && self.columns_hash['tokens'] && self.columns_hash['tokens'].type.in?([:json, :jsonb])
+  #   serialize :tokens, JSON
+  # end
 
   # can't set default on text fields in mysql, simulate here instead.
   after_save :set_empty_token_hash

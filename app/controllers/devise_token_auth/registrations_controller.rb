@@ -1,107 +1,91 @@
 module DeviseTokenAuth
   class RegistrationsController < DeviseTokenAuth::ApplicationController
-    before_action :set_user_by_token, :only => [:destroy, :update]
-    before_action :validate_sign_up_params, :only => :create
-    before_action :validate_account_update_params, :only => :update
-    skip_after_action :update_auth_header, :only => [:create, :destroy]
+    before_action :set_user_by_token, only: [:destroy, :update]
+    before_action :validate_sign_up_params, only: :create
+    before_action :validate_account_update_params, only: :update
+    skip_after_action :update_auth_header, only: [:create, :destroy]
 
-    api! 'registrations.create.title'
-    param :email, String, desc: 'registrations.create.params.email', required: true
-    param :password, String, desc: 'registrations.create.params.password', required: true
-    param :recaptcha, String, desc: 'registrations.create.params.recaptcha', required: true
     def create
-      @resource = resource_class.new(sign_up_params)
+      build_resource
 
-      # honor devise configuration for case_insensitive_keys
-      @resource.email =
-        if resource_class.case_insensitive_keys.include?(:email)
-          sign_up_params[:email]&.downcase
-        else
-          sign_up_params[:email]
-        end
-
-      # give redirect value from params priority
-      @redirect_url = params[:confirm_success_url]
-
-      # fall back to default value if provided
-      @redirect_url ||= DeviseTokenAuth.default_confirm_success_url
-
-      unless recaptcha_valid?(params['recaptcha'])
-        return render json: {
-          status: 'error',
-          data: {
-              errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
-          },
-          errors: [I18n.t("devise_token_auth.registrations.not_verify_captcha")]
-        }, status: 403
+      unless @resource.present?
+        raise DeviseTokenAuth::Errors::NoResourceDefinedError,
+              "#{self.class.name} #build_resource does not define @resource,"\
+              ' execution stopped.'
       end
 
+      # give redirect value from params priority
+      @redirect_url = params.fetch(
+        :confirm_success_url,
+        DeviseTokenAuth.default_confirm_success_url
+      )
+
       # success redirect url is required
-      if resource_class.devise_modules.include?(:confirmable) && !@redirect_url
+      if confirmable_enabled? && !@redirect_url
         return render_create_error_missing_confirm_success_url
       end
 
       # if whitelist is set, validate redirect_url against whitelist
-      if DeviseTokenAuth.redirect_whitelist
-        unless DeviseTokenAuth.redirect_whitelist.include?(@redirect_url)
-          return render_create_error_redirect_url_not_allowed
-        end
+      return render_create_error_redirect_url_not_allowed if blacklisted_redirect_url?(@redirect_url)
+
+      # override email confirmation, must be sent manually from ctrl
+      resource_class.set_callback(:create, :after, :send_on_create_confirmation_instructions)
+      resource_class.skip_callback(:create, :after, :send_on_create_confirmation_instructions)
+
+      if @resource.respond_to? :skip_confirmation_notification!
+        # Fix duplicate e-mails by disabling Devise confirmation e-mail
+        @resource.skip_confirmation_notification!
       end
 
-      begin
-        # override email confirmation, must be sent manually from ctrl
-        resource_class.set_callback('create', :after, :send_on_create_confirmation_instructions)
-        resource_class.skip_callback('create', :after, :send_on_create_confirmation_instructions)
-        if @resource.save
-          @authentication = @resource.authentication(auth_domain)
-          yield @resource if block_given?
+      return render_create_error_not_verify_captcha unless recaptcha_valid?(params['recaptcha'])
+      
+      if @resource.save
+        @authentication = @resource.authentication(auth_domain)
+        yield @resource if block_given?
 
-          if @resource.active_for_authentication?
-            # email auth has been bypassed, authenticate user
-            @client_id = SecureRandom.urlsafe_base64(nil, false)
-            @token     = SecureRandom.urlsafe_base64(nil, false)
-
-
-            @authentication.tokens[@client_id] = {
-              token: BCrypt::Password.create(@token),
-              expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
-            }
-
-            @authentication.save!
-            @resource.add_profile!
-
-            update_auth_header
-          end
-          unless @resource.confirmed?
-            opts = {
-              client_config: params[:config_name],
-              redirect_url: @redirect_url,
-              from: auth_domain&.devise_sender.presence || Devise.mailer_sender,
-              domain_id: auth_domain&.id
-            }
-            mail_subject = auth_domain&.devise_confirmation_subject
-            opts[:subject] = mail_subject if mail_subject
-            @resource.send_confirmation_instructions(opts)
-          end
-
-          render_create_success
-        else
-          clean_up_passwords @resource
-          render_create_error
+        unless @resource.confirmed?
+          # user will require email authentication
+          opts = {
+            client_config: params[:config_name],
+            redirect_url: @redirect_url,
+            from: auth_domain&.devise_sender.presence || Devise.mailer_sender,
+            domain_id: auth_domain&.id
+          }
+          mail_subject = auth_domain&.devise_confirmation_subject
+          opts[:subject] = mail_subject if mail_subject
+          @resource.send_confirmation_instructions(opts)
         end
-      rescue ActiveRecord::RecordNotUnique
+
+        if active_for_authentication?
+          # email auth has been bypassed, authenticate user
+          @token = @authentication.create_token
+          
+          @authentication.save!
+          @resource.add_profile!
+          
+          update_auth_header
+        end
+
+        render_create_success
+      else
         clean_up_passwords @resource
-        render_create_error_email_already_exists
+        render_create_error
       end
     end
-
-    # param :user, Hash,  desc: 'New user attributes', required: true do
-    #   param :current_password, String, desc: 'User current password', required: true
-    #   param :password, String, desc: 'User password', required: true
-    #   param :password_confirmation, String, desc: 'User password confirmation', required: true
-    # end
-
+    
     def update
+      if @resource
+        @resource.skip_confirmation! if can?(:update_without_password, @resource)
+        if @resource.send(resource_update_method, account_update_params)
+          yield @resource if block_given?
+          render_update_success
+        else
+          render_update_error
+        end
+      else
+        render_update_error_user_not_found
+      end
+
       if @resource
         @resource.skip_confirmation! if can?(:update_without_password, @resource)
         if @resource.send(resource_update_method, account_update_params)
@@ -119,7 +103,6 @@ module DeviseTokenAuth
       if @resource
         @resource.destroy
         yield @resource if block_given?
-
         render_destroy_success
       else
         render_destroy_error
@@ -133,111 +116,121 @@ module DeviseTokenAuth
     def account_update_params
       params.permit(*params_for_resource(:account_update))
     end
+
     protected
 
+    def build_resource
+      @resource = resource_class.new(sign_up_params)
+
+      # honor devise configuration for case_insensitive_keys
+      if resource_class.case_insensitive_keys.include?(:email)
+        @resource.email = sign_up_params[:email]&.downcase
+      else
+        @resource.email = sign_up_params[:email]
+      end
+    end
+
     def render_create_error_missing_confirm_success_url
-      render json: {
-          status: 'error',
-          data:   resource_data,
-          errors: [I18n.t("devise_token_auth.registrations.missing_confirm_success_url")]
-      }, status: 422
+      response = {
+        status: :error,
+        data:   resource_data
+      }
+      message = I18n.t('devise_token_auth.registrations.missing_confirm_success_url')
+      render_error(422, message, response)
     end
 
     def render_create_error_redirect_url_not_allowed
-      render json: {
-          status: 'error',
-          data:   resource_data,
-          errors: [I18n.t("devise_token_auth.registrations.redirect_url_not_allowed", redirect_url: @redirect_url)]
-      }, status: 422
+      response = {
+        status: :error,
+        data:   resource_data
+      }
+      message = I18n.t('devise_token_auth.registrations.redirect_url_not_allowed', redirect_url: @redirect_url)
+      render_error(422, message, response)
+    end
+  
+    def render_create_error_not_verify_captcha
+      message = I18n.t('devise_token_auth.registrations.not_verify_captcha')
+      response = {
+        status: :error,
+        data: { errors: [message] }
+      }
+      render_error(403, message, response)
     end
 
     def render_create_success
       render json: {
-          status: 'success',
-          data:   resource_data(resource_json: @authentication.decorate.user_response)
+        status: :success,
+        data:   resource_data
       }
     end
 
     def render_create_error
       render json: {
-          status: 'error',
-          data:   resource_data,
-          errors: resource_errors
-      }, status: 422
-    end
-
-    def render_create_error_email_already_exists
-      render json: {
-          status: 'error',
-          data:   resource_data,
-          errors: [I18n.t("devise_token_auth.registrations.email_already_exists", email: @resource.email)]
+        status: :error,
+        data:   resource_data,
+        errors: resource_errors
       }, status: 422
     end
 
     def render_update_success
       render json: {
-          status: 'success',
-          data:   resource_data
+        status: :success,
+        data:   resource_data
       }
     end
 
     def render_update_error
       render json: {
-          status: 'error',
-          errors: resource_errors
+        status: :error,
+        errors: resource_errors
       }, status: 422
     end
 
     def render_update_error_user_not_found
-      render json: {
-          status: 'error',
-          errors: [I18n.t("devise_token_auth.registrations.user_not_found")]
-      }, status: 404
+      render_error(404, I18n.t('devise_token_auth.registrations.user_not_found'), status: :error)
     end
 
     def render_destroy_success
       render json: {
-          status: 'success',
-          message: I18n.t("devise_token_auth.registrations.account_with_uid_destroyed", uid: @authentication.uid)
+        status: :success,
+        message: I18n.t('devise_token_auth.registrations.account_with_uid_destroyed', uid: @resource.uid)
       }
     end
 
     def render_destroy_error
-      render json: {
-          status: 'error',
-          errors: [I18n.t("devise_token_auth.registrations.account_to_destroy_not_found")]
-      }, status: 404
+      render_error(404, I18n.t('devise_token_auth.registrations.account_to_destroy_not_found'), status: :error)
     end
 
     private
 
     def resource_update_method
       if account_update_params.has_key?(:password) && can?(:update_without_password, @resource)
-        'update_without_password'
+        :update_without_password
       elsif DeviseTokenAuth.check_current_password_before_update == :attributes
-        'update_with_password'
-      elsif DeviseTokenAuth.check_current_password_before_update == :password and account_update_params.has_key?(:password)
-        'update_with_password'
-      elsif account_update_params.has_key?(:current_password)
-        'update_with_password'
+        :update_with_password
+      elsif DeviseTokenAuth.check_current_password_before_update == :password && account_update_params.key?(:password)
+        :update_with_password
+      elsif account_update_params.key?(:current_password)
+        :update_with_password
       else
-        'update_attributes'
+        :update
       end
     end
 
     def validate_sign_up_params
-      validate_post_data sign_up_params, I18n.t("errors.validate_sign_up_params")
+      validate_post_data(sign_up_params, I18n.t('errors.messages.validate_sign_up_params'))
     end
 
     def validate_account_update_params
-      validate_post_data account_update_params, I18n.t("errors.validate_account_update_params")
+      validate_post_data(account_update_params, I18n.t('errors.messages.validate_account_update_params'))
     end
 
-    def validate_post_data which, message
-      render json: {
-         status: 'error',
-         errors: [message]
-      }, status: :unprocessable_entity if which.empty?
+    def validate_post_data(which, message)
+      render_error(:unprocessable_entity, message, status: :error) if which.empty?
+    end
+
+    def active_for_authentication?
+      !@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?
     end
   end
 end
