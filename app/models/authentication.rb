@@ -139,10 +139,6 @@ class Authentication < PgPartitioned::ByDomainId
     update_auth_header(token, client)
   end
 
-  def token_validation_response
-    as_json(except: %i[tokens created_at updated_at])
-  end
-
   protected
 
   def set_empty_token_hash
