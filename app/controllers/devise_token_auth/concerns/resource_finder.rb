@@ -19,11 +19,11 @@ module DeviseTokenAuth::Concerns::ResourceFinder
     q_value
   end
 
-  def find_resource(field, value)
+  def find_resource(field, value, authentication_only = false)
     authentication_q = "authentications.uid = ? AND authentications.provider='email'"
 
     @resource = resource_class.joins(:authentications).where(authentication_q, value).first
-    @resource ||= resource_class.find_by(field => value)
+    @resource ||= resource_class.find_by(field => value) unless authentication_only
   end
 
   def resource_class(m = nil)

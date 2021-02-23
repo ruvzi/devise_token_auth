@@ -90,6 +90,7 @@ module DeviseTokenAuth::Concerns::SetUserByToken
       @authentication = nil
       @resource = nil
     end
+    @resource
   end
 
 

@@ -43,7 +43,7 @@ class Authentication < PgPartitioned::ByDomainId
   after_initialize :set_empty_token_hash
 
   # get rid of dead tokens
-  before_save :destroy_expired_tokens #+
+  before_save :destroy_expired_tokens
 
   def create_token(client: nil, lifespan: nil, cost: nil, **token_extras)
     token = DeviseTokenAuth::TokenFactory.create(client: client, lifespan: lifespan, cost: cost)
