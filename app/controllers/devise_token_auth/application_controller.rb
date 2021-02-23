@@ -18,7 +18,7 @@ module DeviseTokenAuth
       DeviseTokenAuth.redirect_whitelist && !DeviseTokenAuth::Url.whitelisted?(redirect_url)
     end
 
-    def build_redirect_headers(access_token, client, redirect_header_options = {})
+    def build_redirect_headers(access_token, client, header_options = {})
       {
         DeviseTokenAuth.headers_names[:"access-token"] => access_token,
         DeviseTokenAuth.headers_names[:"client"] => client,
@@ -29,7 +29,7 @@ module DeviseTokenAuth
         # See: github.com/lynndylanhurley/devise_token_auth/issues/993
         :client_id => client,
         :token => access_token
-      }.merge(redirect_header_options)
+      }.merge(header_options)
     end
 
     def params_for_resource(resource)

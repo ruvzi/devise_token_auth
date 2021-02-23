@@ -1,85 +1,72 @@
 # see http://www.emilsoman.com/blog/2013/05/18/building-a-tested/
 module DeviseTokenAuth
   class SessionsController < DeviseTokenAuth::ApplicationController
-    before_action :set_user_by_token, :only => [:destroy]
-    after_action :reset_session, :only => [:destroy]
+    before_action :set_user_by_token, only: [:destroy]
+    after_action :reset_session, only: [:destroy]
 
     def new
       render_new_error
     end
 
-    api! 'sessions.create.title'
-    param :email, String, desc: 'sessions.create.params.email', required: true
-    param :password, String, desc: 'sessions.create.params.password', required: true
     def create
       # Check
       field = (resource_params.keys.map(&:to_sym) & resource_class.authentication_keys).first
 
       @resource = nil
+      q_value = nil
       if field
-        q_value = resource_params[field]
+        q_value = get_case_insensitive_field_from_resource_params(field)
 
-        if resource_class.case_insensitive_keys.include?(field)
-          q_value.downcase!
-        end
-
-        q = "authentications.uid = ? AND authentications.provider='email'"
-        resource_q = "#{field} = ?"
-
-        if ActiveRecord::Base.connection.adapter_name.downcase.starts_with? 'mysql'
-          q = 'BINARY ' + q
-          resource_q = 'BINARY ' + resource_q
-        end
-
-        @resource = resource_class.joins(:authentications).where(q, q_value).first
-        @resource ||= resource_class.where(resource_q, q_value).first
+        @resource = find_resource(field, q_value)
         @authentication = @resource.authentication(auth_domain) if @resource
       end
 
-      if @resource && !@resource.blocked? && valid_params?(field, q_value) && @resource.valid_password?(resource_params[:password]) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
-        # create client id
-        @client_id = SecureRandom.urlsafe_base64(nil, false)
-        @token     = SecureRandom.urlsafe_base64(nil, false)
+      if @resource && !@resource.blocked? && valid_params?(field, q_value) && (!@resource.respond_to?(:active_for_authentication?) || @resource&.active_for_authentication?)
+        valid_password = @resource&.valid_password?(resource_params[:password])
 
-        @authentication.tokens[@client_id] = {
-          token: BCrypt::Password.create(@token),
-          expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
-        }
+        if (@resource.respond_to?(:valid_for_authentication?) && !@resource&.valid_for_authentication? { valid_password }) || !valid_password
+          return render_create_error_bad_credentials
+        end
+
+        @token = @authentication.create_token
         @authentication.domain_id = auth_domain&.id
         @authentication.save
 
-        sign_in(:user, @resource, store: true, forse: true)
 
-        yield if block_given?
+        # sign_in(:user, @resource, store: true, forse: true) #OLD
+        sign_in(:user, @resource, store: false, bypass: false)
+
+        yield @resource if block_given?
 
         render_create_success
 
-      elsif @resource && @resource.blocked?
+      elsif @resource&.blocked?
         render_create_error_blocked
-      elsif @resource and not (!@resource.respond_to?(:active_for_authentication?) or @resource.active_for_authentication?)
-        render_create_error_not_confirmed
-
+      elsif @resource && !(!@resource.respond_to?(:active_for_authentication?) || @resource&.active_for_authentication?)
+        if @resource.respond_to?(:locked_at) && @resource&.locked_at
+          render_create_error_account_locked
+        else
+          render_create_error_not_confirmed
+        end
       else
         render_create_error_bad_credentials
       end
     end
 
-    api!
     def destroy
       # remove auth instance variables so that after_action does not run
-      user = remove_instance_variable(:@resource) if @resource
-      authentication = remove_instance_variable(:@authentication) if @authentication
-      client_id = remove_instance_variable(:@client_id) if @client_id
-      remove_instance_variable(:@token) if @token
+      user = @resource ? remove_instance_variable(:@resource) : nil
+      authentication = @authentication ? remove_instance_variable(:@authentication) : nil
+      client = @token.client
+      @token.clear!
 
-      if user && authentication && client_id && authentication.tokens[client_id]
-        authentication.tokens.delete(client_id)
+      if user && authentication && client && authentication.tokens[client]
+        authentication.tokens.delete(client)
         authentication.save!
 
-        yield if block_given?
+        yield user if block_given?
 
         render_destroy_success
-
       else
         render_destroy_error
       end
@@ -94,14 +81,8 @@ module DeviseTokenAuth
           admin_id = current_user.id
         end
         @resource = user
-        @authentication = @resource.authentication(auth_domain) if @resource
-        @client_id = SecureRandom.urlsafe_base64(nil, false)
-        @token     = SecureRandom.urlsafe_base64(nil, false)
-
-        @authentication.tokens[@client_id] = {
-            token: BCrypt::Password.create(@token),
-            expiry: (Time.now + DeviseTokenAuth.token_lifespan).to_i
-        }
+        @authentication = @resource.authentication(auth_domain)
+        @token = @authentication.create_token
         @authentication.save
 
         bypass_sign_in(@resource, scope: :user)
@@ -109,7 +90,7 @@ module DeviseTokenAuth
 
         render_create_success
       else
-        render json: {error: 'unauthorized', status: 401}, status: 401
+        render_error(401, 'unauthorized')
       end
     end
 
@@ -137,54 +118,39 @@ module DeviseTokenAuth
         auth_val.downcase!
       end
 
-      return {
-        key: auth_key,
-        val: auth_val
-      }
+      { key: auth_key, val: auth_val }
     end
 
     def render_new_error
-      render json: {
-          errors: [ I18n.t("devise_token_auth.sessions.not_supported")]
-      }, status: 405
+      render_error(405, I18n.t('devise_token_auth.sessions.not_supported'))
     end
 
     def render_create_success
-      render json: {
-          data: resource_data(resource_json: @authentication.decorate.user_response)
-      }
+      render json: { data: resource_data(resource_json: @authentication.decorate.user_response) }, status: 200
     end
 
     def render_create_error_blocked
-      render json: {
-          success: false,
-          errors: [ I18n.t('devise_token_auth.sessions.user_blocked') ]
-      }, status: 401
+      render_error(401, I18n.t('devise_token_auth.sessions.user_blocked', email: @resource.email))
     end
 
     def render_create_error_not_confirmed
-      render json: {
-          success: false,
-          errors: [ I18n.t('devise_token_auth.sessions.not_confirmed', email: @resource.email) ]
-      }, status: 401
+      render_error(401, I18n.t('devise_token_auth.sessions.not_confirmed', email: @resource.email))
+    end
+
+    def render_create_error_account_locked
+      render_error(401, I18n.t('devise.mailer.unlock_instructions.account_lock_msg'))
     end
 
     def render_create_error_bad_credentials
-      render json: {
-          errors: [I18n.t('devise_token_auth.sessions.bad_credentials')]
-      }, status: 401
+      render_error(401, I18n.t('devise_token_auth.sessions.bad_credentials'))
     end
 
     def render_destroy_success
-      render json: {
-          success:true
-      }, status: 200
+      render json: { success: true }, status: 200
     end
 
     def render_destroy_error
-      render json: {
-          errors: [I18n.t("devise_token_auth.sessions.user_not_found")]
-      }, status: 404
+      render_error(404, I18n.t('devise_token_auth.sessions.user_not_found'))
     end
 
     private

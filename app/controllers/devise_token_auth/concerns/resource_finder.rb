@@ -20,7 +20,10 @@ module DeviseTokenAuth::Concerns::ResourceFinder
   end
 
   def find_resource(field, value)
-    @resource = resource_class.dta_find_by(field => value, provider: :email)
+    authentication_q = "authentications.uid = ? AND authentications.provider='email'"
+
+    @resource = resource_class.joins(:authentications).where(authentication_q, value).first
+    @resource ||= resource_class.find_by(field => value)
   end
 
   def resource_class(m = nil)
