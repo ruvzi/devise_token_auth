@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module DeviseTokenAuth::AuthenticationOmniauthCallbacks
+module DeviseTokenAuth::Concerns::AuthenticationOmniauthCallbacks
   extend ActiveSupport::Concern
 
   included do
@@ -18,7 +18,6 @@ module DeviseTokenAuth::AuthenticationOmniauthCallbacks
 
   def sync_uid
     return if user.not_sync_email?
-
 
     new_uid = self.user&.email
     self.uid = new_uid if new_uid.present? && email_provider?

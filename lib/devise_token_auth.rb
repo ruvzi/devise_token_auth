@@ -1,4 +1,5 @@
 require "devise"
+require "omniauth"
 
 module DeviseTokenAuth
 end
