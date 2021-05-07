@@ -17,7 +17,6 @@
 #  user_id    :integer
 #
 
-require 'bcrypt'
 class Authentication < PgPartitioned::ByDomainId
   self.primary_key = :id
   include DeviseTokenAuth::Concerns::Strategy
